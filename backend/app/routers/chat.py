@@ -1,0 +1,175 @@
+"""POST /api/v1/chat — the core endpoint."""
+
+from __future__ import annotations
+
+import base64
+import io
+import os
+import tempfile
+import wave
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.auth import check_usage_limit, get_current_user, get_user_usage
+from app.config import get_settings
+from app.database import append_history, get_history
+from app.schemas import (
+    ChatRequest,
+    ChatResponse,
+    Correction,
+    Evaluation,
+    PronunciationScore,
+    TutorResponseContent,
+    UsageInfo,
+)
+from app.services.scoring import compute_score
+from app.services.stt_service import transcribe
+from app.services.tts_service import synthesize as synthesize_tts
+from app.services.tutor import JapaneseTutor
+
+router = APIRouter()
+
+# Singleton tutor (stateless, so safe to share)
+_tutor: JapaneseTutor | None = None
+
+
+def get_tutor() -> JapaneseTutor:
+    global _tutor
+    if _tutor is None:
+        _tutor = JapaneseTutor(get_settings())
+    return _tutor
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(
+    body: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Main chat + teaching endpoint.
+
+    Accepts text (and optionally audio). Returns AI teaching response,
+    TTS audio URL, pronunciation score (if audio provided), and usage info.
+    """
+    user_id = current_user["user_id"]
+    level = body.level or current_user.get("level", "N5")
+    settings = get_settings()
+
+    # ── 1. Check usage limit ──
+    usage_info = check_usage_limit(user_id)
+    if usage_info["lessons_remaining"] <= 0 and usage_info["tier"] == "free":
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "error": "daily_limit_reached",
+                "message": "You've used all your free lessons for today. Upgrade to Pro for unlimited access!",
+                "usage": usage_info,
+            },
+        )
+
+    # ── 2. If audio provided → run STT + scoring ──
+    transcribed_text = body.message
+    pronunciation_score = None
+    expected_phrase = None  # set from tutor's last response if available
+
+    if body.audio:
+        try:
+            audio_bytes = base64.b64decode(body.audio)
+            # Run Whisper STT (language=ja — user is attempting Japanese)
+            text_from_audio, segments = transcribe(audio_bytes, language="ja")
+            if text_from_audio:
+                transcribed_text = text_from_audio
+
+            # Get expected phrase from conversation history (last AI message)
+            history = get_history(user_id)
+            for msg in reversed(history):
+                if msg["role"] == "assistant":
+                    # Try to extract japanese_phrase from stored content
+                    # For simplicity, we store it in database as a marker
+                    break
+
+            # Compute pronunciation score
+            pronunciation_score = compute_score(
+                whisper_segments=segments,
+                expected_phrase=expected_phrase,
+                llm_evaluation=None,  # will be updated after LLM call
+            )
+        except Exception as e:
+            # If STT fails, fall back to text-only gracefully
+            pass
+
+    # ── 3. Get conversation history ──
+    history = get_history(user_id)
+
+    # ── 4. Call LLM ──
+    tutor = get_tutor()
+    result = tutor.chat(
+        user_message=transcribed_text,
+        history=history,
+        level=level,
+    )
+
+    # ── 5. Update pronunciation score with LLM evaluation ──
+    if pronunciation_score and result.get("evaluation"):
+        # Re-score with LLM evaluation included
+        pronunciation_score = compute_score(
+            whisper_segments=pronunciation_score.get("details") or [],
+            expected_phrase=expected_phrase,
+            llm_evaluation=result["evaluation"],
+        )
+
+    # ── 6. Generate TTS if there's a Japanese phrase ──
+    audio_url = None
+    jp_phrase = result.get("japanese_phrase", "")
+    if jp_phrase:
+        try:
+            tts_bytes = await synthesize_tts(jp_phrase)
+            # For MVP: store inline as data URI (no Supabase Storage yet)
+            audio_b64 = base64.b64encode(tts_bytes).decode()
+            audio_url = f"data:audio/mp3;base64,{audio_b64}"
+        except Exception as e:
+            pass
+    # ── 7. Store conversation history ──
+    append_history(user_id, "user", transcribed_text)
+    if jp_phrase:
+        append_history(user_id, "assistant", jp_phrase)
+
+    # ── 8. Increment usage ──
+    final_usage = get_user_usage(user_id)
+
+    # ── 9. Build response ──
+    eval_data = result.get("evaluation")
+    evaluation_obj = None
+    if eval_data:
+        evaluation_obj = Evaluation(
+            accurate=eval_data.get("accurate", False),
+            what_was_good=eval_data.get("what_was_good", ""),
+            what_to_improve=eval_data.get("what_to_improve", ""),
+            practice_again=eval_data.get("practice_again", ""),
+        )
+
+    corrections = []
+    for c in result.get("corrections") or []:
+        corrections.append(Correction(**c))
+
+    score_obj = None
+    if pronunciation_score:
+        score_obj = PronunciationScore(**pronunciation_score)
+
+    return ChatResponse(
+        response=TutorResponseContent(
+            your_message=result.get("your_message", ""),
+            japanese_phrase=jp_phrase,
+            romaji=result.get("romaji", ""),
+            pronunciation_tips=result.get("pronunciation_tips", ""),
+            evaluation=evaluation_obj,
+            corrections=corrections,
+            encouragement=result.get("encouragement", ""),
+        ),
+        audio_url=audio_url,
+        pronunciation_score=score_obj,
+        usage=UsageInfo(
+            lessons_used_today=final_usage.get("lessons_used_today", 0),
+            lessons_remaining=final_usage.get("lessons_remaining", 0),
+            tier=final_usage.get("tier", "free"),
+        ),
+    )

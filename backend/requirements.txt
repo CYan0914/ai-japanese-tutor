@@ -1,0 +1,31 @@
+# FastAPI
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic-settings>=2.0.0
+
+# LLM (DeepSeek V4 via OpenAI-compatible API)
+openai>=1.0.0
+
+# Speech-to-Text (local)
+faster-whisper>=1.0.0
+
+# Text-to-Speech
+edge-tts>=6.0.0
+
+# Audio processing
+numpy>=1.24.0
+soundfile>=0.12.0
+
+# Supabase
+supabase>=2.0.0
+
+# HTTP client
+httpx>=0.27.0
+python-multipart>=0.0.9
+
+# JWT validation
+PyJWT>=2.0.0
+cryptography>=41.0.0
+
+# CORS
+# (included in fastapi)

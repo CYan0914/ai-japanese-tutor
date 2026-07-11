@@ -1,0 +1,116 @@
+/// Lesson state management with Provider.
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../models/chat_message.dart';
+import '../models/tutor_response.dart';
+import '../services/api_service.dart';
+import '../services/audio_service.dart';
+
+class LessonState extends ChangeNotifier {
+  final AudioService audio = AudioService();
+
+  List<ChatMessage> messages = [];
+  bool isLoading = false;
+  bool isRecording = false;
+  String? error;
+  UsageInfo? usage;
+  String currentLevel = 'N5';
+
+  /// Send text message to the tutor.
+  Future<void> sendText(String text) async {
+    if (text.trim().isEmpty) return;
+    messages.add(ChatMessage.user(text));
+    notifyListeners();
+
+    await _callApi(message: text);
+  }
+
+  /// Record and send audio to the tutor.
+  Future<void> startRecording() async {
+    try {
+      isRecording = true;
+      notifyListeners();
+      await audio.startRecording();
+    } catch (e) {
+      error = 'Failed to start recording: $e';
+      isRecording = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> stopAndSend() async {
+    if (!isRecording) return;
+    isRecording = false;
+    notifyListeners();
+
+    try {
+      final bytes = await audio.stopRecording();
+      if (bytes == null || bytes.isEmpty) {
+        error = 'No audio captured';
+        notifyListeners();
+        return;
+      }
+
+      // Show user message
+      final b64 = base64Encode(bytes);
+      messages.add(ChatMessage.user('[Audio recording]'));
+      notifyListeners();
+
+      await _callApi(audioBase64: b64);
+    } catch (e) {
+      error = 'Recording failed: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Core API call.
+  Future<void> _callApi({String? message, String? audioBase64}) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await ApiService.chat(
+        message: message ?? '[audio]',
+        level: currentLevel,
+        audioBase64: audioBase64,
+      );
+
+      messages.add(ChatMessage.fromResponse(resp.response, resp.audioUrl));
+      usage = resp.usage;
+    } catch (e) {
+      if (e.toString().contains('daily_limit_reached')) {
+        error = 'You\'ve used all your free lessons for today. Upgrade to Pro!';
+      } else {
+        error = 'Something went wrong. Please try again.';
+      }
+    }
+
+    isLoading = false;
+    notifyListeners();
+
+    // Auto-play TTS audio if available
+    final lastMsg = messages.isNotEmpty ? messages.last : null;
+    if (lastMsg?.audioUrl != null) {
+      try {
+        await audio.playUrl(lastMsg!.audioUrl!);
+      } catch (_) {}
+    }
+  }
+
+  void setLevel(String level) {
+    currentLevel = level;
+    notifyListeners();
+  }
+
+  void clearError() {
+    error = null;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    audio.dispose();
+    super.dispose();
+  }
+}
