@@ -2,8 +2,7 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/lesson_screen.dart';
+import 'screens/main_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/subscription_screen.dart';
 
@@ -34,24 +33,19 @@ class SakuraApp extends StatelessWidget {
           case '/login':
             return _page(const LoginScreen());
           case '/home':
-            return _page(const HomeScreen());
-          case '/lesson':
-            return _page(const LessonScreen());
+            return _page(const MainScreen());
           case '/profile':
             return _page(const ProfileScreen());
           case '/subscribe':
             return _page(const SubscriptionScreen());
           default:
-            return _page(const HomeScreen());
+            return _page(const MainScreen());
         }
       },
     );
   }
 
   MaterialPageRoute _page(Widget child) {
-    return MaterialPageRoute(
-      builder: (_) => child,
-      settings: const RouteSettings(),
-    );
+    return MaterialPageRoute(builder: (_) => child);
   }
 }
