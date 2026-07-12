@@ -127,11 +127,24 @@ async def chat(
             audio_b64 = base64.b64encode(tts_bytes).decode()
             audio_url = f"data:audio/mp3;base64,{audio_b64}"
         except Exception as e:
-            pass
+            # Log TTS failure but don't break the response
+            import logging
+            logging.getLogger("uvicorn.error").warning(f"TTS failed for '{jp_phrase[:50]}': {e}")
     # ── 7. Store conversation history ──
-    append_history(user_id, "user", transcribed_text)
+    # Include key teaching content (not just jp_phrase) so the LLM has context
+    assistant_summary_parts = []
+    if result.get("your_message"):
+        assistant_summary_parts.append(result["your_message"][:300])
     if jp_phrase:
-        append_history(user_id, "assistant", jp_phrase)
+        assistant_summary_parts.append(f"[Japanese: {jp_phrase}]")
+    if result.get("romaji"):
+        assistant_summary_parts.append(f"[Romaji: {result['romaji']}]")
+    assistant_summary = " ".join(assistant_summary_parts) if assistant_summary_parts else jp_phrase
+    if not assistant_summary:
+        assistant_summary = transcribed_text  # fallback
+
+    append_history(user_id, "user", transcribed_text)
+    append_history(user_id, "assistant", assistant_summary)
 
     # ── 8. Increment usage ──
     final_usage = get_user_usage(user_id)

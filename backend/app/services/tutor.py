@@ -149,7 +149,7 @@ class JapaneseTutor:
             model=self.settings.llm_model,
             messages=messages,
             temperature=0.7,
-            max_tokens=800,
+            max_tokens=1200,
         )
         return resp.choices[0].message.content or ""
 
