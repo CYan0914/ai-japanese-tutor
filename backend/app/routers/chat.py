@@ -101,8 +101,8 @@ async def _process_chat(
     if body.audio:
         try:
             audio_bytes = base64.b64decode(body.audio)
-            # Run Whisper STT (language=ja — user is attempting Japanese)
-            text_from_audio, segments = transcribe(audio_bytes, language="ja")
+            # Run Whisper STT — auto-detect language (user speaks English or Japanese)
+            text_from_audio, segments = transcribe(audio_bytes)
             if text_from_audio:
                 transcribed_text = text_from_audio
 

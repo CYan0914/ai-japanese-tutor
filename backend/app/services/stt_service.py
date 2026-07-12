@@ -37,9 +37,12 @@ def init_whisper(settings: Settings) -> None:
 
 def transcribe(
     audio_data: bytes,
-    language: str = "ja",
+    language: str | None = None,
 ) -> tuple[str, list[dict]]:
-    """Transcribe audio bytes → (text, segments_with_confidence)."""
+    """Transcribe audio bytes → (text, segments_with_confidence).
+
+    If language is None, Whisper auto-detects the language (recommended).
+    """
     global _whisper_model
     if _whisper_model is None:
         raise RuntimeError("Whisper model not loaded. Call init_whisper() first.")
@@ -77,7 +80,7 @@ def transcribe(
 def transcribe_from_numpy(
     audio: np.ndarray,
     sample_rate: int = 16000,
-    language: str = "ja",
+    language: str | None = None,
 ) -> tuple[str, list[dict]]:
     """Transcribe numpy array audio (float32, -1 to 1) → (text, segments)."""
     import soundfile as sf
