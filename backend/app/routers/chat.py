@@ -26,6 +26,7 @@ from app.services.scoring import compute_score
 from app.services.stt_service import transcribe
 from app.services.tts_service import synthesize as synthesize_tts
 from app.services.tutor import JapaneseTutor
+from app.services.phoneme_profile import record_phoneme_scores
 
 router = APIRouter()
 
@@ -141,6 +142,18 @@ async def chat(
             # Log TTS failure but don't break the response
             import logging
             logging.getLogger("uvicorn.error").warning(f"TTS failed for '{jp_phrase[:50]}': {e}")
+    # ── 6.5 Record phoneme scores for pronunciation tracking ──
+    eval_data = result.get("evaluation")
+    if eval_data and isinstance(eval_data, dict):
+        ps = eval_data.get("phoneme_scores")
+        if ps and isinstance(ps, dict) and len(ps) > 0:
+            try:
+                # Convert 0-1 scores to 0-100 scale
+                scaled = {k: float(v) * 100 for k, v in ps.items()}
+                record_phoneme_scores(user_id, scaled)
+            except Exception:
+                pass  # non-critical, don't break the response
+
     # ── 7. Store conversation history ──
     # Include key teaching content (not just jp_phrase) so the LLM has context
     assistant_summary_parts = []

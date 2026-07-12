@@ -14,6 +14,7 @@ class ChatMessage {
   final String? encouragement;
   final PronunciationScore? pronunciationScore;
   final String? audioUrl;
+  final String? localAudioPath; // path to user's own recording for playback
   final DateTime timestamp;
 
   ChatMessage({
@@ -27,13 +28,19 @@ class ChatMessage {
     this.encouragement,
     this.pronunciationScore,
     this.audioUrl,
+    this.localAudioPath,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
   bool get isUser => role == MessageRole.user;
+  bool get hasLocalAudio => localAudioPath != null && localAudioPath!.isNotEmpty;
 
-  static ChatMessage user(String text) {
-    return ChatMessage(role: MessageRole.user, text: text);
+  static ChatMessage user(String text, {String? audioPath}) {
+    return ChatMessage(
+      role: MessageRole.user,
+      text: text,
+      localAudioPath: audioPath,
+    );
   }
 
   factory ChatMessage.fromResponse(TutorResponse resp, String? audioUrl) {

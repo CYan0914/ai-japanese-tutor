@@ -171,3 +171,78 @@ class UsageInfo {
 
   bool get isPro => tier == 'pro';
 }
+
+// ── Phoneme Profile ──
+
+class PhonemePoint {
+  final String phoneme;
+  final double avgScore;
+  final int attempts;
+  final String trend;
+  final String lastPracticed;
+
+  PhonemePoint({
+    required this.phoneme,
+    required this.avgScore,
+    required this.attempts,
+    required this.trend,
+    required this.lastPracticed,
+  });
+
+  factory PhonemePoint.fromJson(Map<String, dynamic> json) {
+    return PhonemePoint(
+      phoneme: json['phoneme'] as String? ?? '',
+      avgScore: (json['avg_score'] as num?)?.toDouble() ?? 0.0,
+      attempts: json['attempts'] as int? ?? 0,
+      trend: json['trend'] as String? ?? 'flat',
+      lastPracticed: json['last_practiced'] as String? ?? '',
+    );
+  }
+
+  /// 0-100 score → color
+  String get level {
+    if (avgScore >= 80) return 'good';
+    if (avgScore >= 50) return 'ok';
+    return 'weak';
+  }
+}
+
+class PhonemeProfile {
+  final String userId;
+  final List<PhonemePoint> phonemes;
+  final List<String> weakest;
+  final String mostImproved;
+  final String needsPractice;
+  final int totalAttempts;
+  final String lastUpdated;
+
+  PhonemeProfile({
+    required this.userId,
+    required this.phonemes,
+    required this.weakest,
+    required this.mostImproved,
+    required this.needsPractice,
+    required this.totalAttempts,
+    required this.lastUpdated,
+  });
+
+  factory PhonemeProfile.fromJson(Map<String, dynamic> json) {
+    return PhonemeProfile(
+      userId: json['user_id'] as String? ?? '',
+      phonemes: (json['phonemes'] as List<dynamic>?)
+              ?.map((e) => PhonemePoint.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      weakest: (json['weakest'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      mostImproved: json['most_improved'] as String? ?? '',
+      needsPractice: json['needs_practice'] as String? ?? '',
+      totalAttempts: json['total_attempts'] as int? ?? 0,
+      lastUpdated: json['last_updated'] as String? ?? '',
+    );
+  }
+
+  bool get isEmpty => phonemes.isEmpty;
+}

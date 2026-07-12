@@ -89,3 +89,24 @@ class LevelUpdateRequest(BaseModel):
 class LevelUpdateResponse(BaseModel):
     level: str = ""
     updated: bool = True
+
+
+# ── Phoneme Profile ──
+
+
+class PhonemePoint(BaseModel):
+    phoneme: str = ""
+    avg_score: float = 0.0
+    attempts: int = 0
+    trend: str = "flat"  # improving | flat | declining
+    last_practiced: str = ""  # ISO date
+
+
+class PhonemeProfile(BaseModel):
+    user_id: str = ""
+    phonemes: list[PhonemePoint] = []
+    weakest: list[str] = []  # bottom 3 phonemes
+    most_improved: str = ""  # phoneme with best positive trend
+    needs_practice: str = ""  # weakest phoneme, longest since practice
+    total_attempts: int = 0
+    last_updated: str = ""

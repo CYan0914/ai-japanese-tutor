@@ -68,7 +68,12 @@ OUTPUT FORMAT — return valid JSON ONLY, no markdown fences:
     "accurate": true or false,
     "what_was_good": "what the student did well",
     "what_to_improve": "specific sounds or aspects to work on",
-    "practice_again": "what you want them to try next"
+    "practice_again": "what you want them to try next",
+    "phoneme_scores": {{
+      "あ": 0.85,
+      "り": 0.42,
+      "つ": 0.38
+    }}
   }},
   "corrections": [
     {{
@@ -80,8 +85,15 @@ OUTPUT FORMAT — return valid JSON ONLY, no markdown fences:
   "encouragement": "One-line cheer to keep them motivated"
 }}
 
+In evaluation.phoneme_scores, list ONLY the Japanese phonemes the student actually attempted.
+Score each 0.0-1.0 based on how native-like their pronunciation was.
+Key phonemes to listen for include vowels (あいうえお), k-series, s-series, t-series, n-series,
+h-series, m-series, y-series, r-series, w-series, n/moraic-n, and voiced variants.
+If you can't distinguish individual phonemes, still estimate scores for the most noticeable ones.
+
 If the student hasn't tried speaking yet (Mode A), set evaluation to null.
 If no corrections needed, set corrections to empty array [].
+If the student didn't attempt any Japanese (just asked a question), set phoneme_scores to {{}}.
 
 Always end by prompting them to do something — try a phrase, repeat a sound, answer a question."""
 

@@ -201,6 +201,13 @@ class _LessonScreenState extends State<LessonScreen> {
         child: ChatBubble(
           text: msg.text,
           isUser: true,
+          localAudioPath: msg.localAudioPath,
+          onPlayLocalAudio: msg.hasLocalAudio
+              ? () async {
+                  final state = context.read<LessonState>();
+                  await state.audio.playFile(msg.localAudioPath!);
+                }
+              : null,
           timestamp: msg.timestamp,
         ),
       );

@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends
 
 from app.auth import get_current_user
 from app.database import get_profile, update_level
-from app.schemas import LevelUpdateRequest, LevelUpdateResponse, UserProfile
+from app.schemas import LevelUpdateRequest, LevelUpdateResponse, PhonemeProfile, UserProfile
+from app.services.phoneme_profile import get_phoneme_profile
 
 router = APIRouter()
 
@@ -35,3 +36,11 @@ async def update_user_level(
 ):
     profile = update_level(current_user["user_id"], body.level)
     return LevelUpdateResponse(level=profile["level"], updated=True)
+
+
+@router.get("/user/phonemes", response_model=PhonemeProfile)
+async def get_user_phonemes(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the user's phoneme-level pronunciation profile."""
+    return get_phoneme_profile(current_user["user_id"])

@@ -1,5 +1,6 @@
 /// Lesson state management with Provider.
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 import '../models/tutor_response.dart';
@@ -51,9 +52,14 @@ class LessonState extends ChangeNotifier {
         return;
       }
 
-      // Show user message
+      // Save recording to temp file so user can play it back
+      final dir = Directory.systemTemp;
+      final localPath = '${dir.path}/sakura_myrec_${DateTime.now().millisecondsSinceEpoch}.wav';
+      await File(localPath).writeAsBytes(bytes);
+
+      // Show user message with local audio path
       final b64 = base64Encode(bytes);
-      messages.add(ChatMessage.user('[Audio recording]'));
+      messages.add(ChatMessage.user('[Audio recording]', audioPath: localPath));
       notifyListeners();
 
       await _callApi(audioBase64: b64);

@@ -105,4 +105,45 @@ class ApiService {
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     return fromJson(data);
   }
+
+  // ── Phoneme Profile ──
+
+  static Future<PhonemeProfile> getPhonemeProfile() async {
+    return _getWithAuth(
+      path: '/user/phonemes',
+      fromJson: PhonemeProfile.fromJson,
+    );
+  }
+
+  static Future<T> _getWithAuth<T>({
+    required String path,
+    required T Function(Map<String, dynamic>) fromJson,
+  }) async {
+    final token = await ensureToken();
+
+    Future<http.Response> doGet(String t) {
+      return http.get(
+        Uri.parse('${AppConstants.apiBaseUrl}$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $t',
+        },
+      ).timeout(const Duration(seconds: 30));
+    }
+
+    var resp = await doGet(token);
+
+    if (resp.statusCode == 401) {
+      await clearToken();
+      final newToken = await ensureToken();
+      resp = await doGet(newToken);
+    }
+
+    if (resp.statusCode != 200) {
+      throw Exception('API error: ${resp.statusCode}');
+    }
+
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    return fromJson(data);
+  }
 }

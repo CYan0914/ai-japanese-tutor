@@ -9,6 +9,8 @@ class ChatBubble extends StatelessWidget {
   final String? pronunciationTips;
   final String? audioUrl;
   final VoidCallback? onPlayAudio;
+  final String? localAudioPath;
+  final VoidCallback? onPlayLocalAudio;
   final DateTime? timestamp;
 
   const ChatBubble({
@@ -20,6 +22,8 @@ class ChatBubble extends StatelessWidget {
     this.pronunciationTips,
     this.audioUrl,
     this.onPlayAudio,
+    this.localAudioPath,
+    this.onPlayLocalAudio,
     this.timestamp,
   });
 
@@ -116,7 +120,7 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
 
-          // Play audio button
+          // Play audio button (AI's TTS)
           if (onPlayAudio != null && audioUrl != null)
             Padding(
               padding: const EdgeInsets.only(top: 4, left: 4),
@@ -138,6 +142,36 @@ class ChatBubble extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.pink.shade400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Play-my-recording button (user's own voice)
+          if (onPlayLocalAudio != null && localAudioPath != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, right: 4),
+              child: GestureDetector(
+                onTap: onPlayLocalAudio,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_circle, size: 14, color: Colors.blue.shade400),
+                      const SizedBox(width: 4),
+                      Text(
+                        'My Voice',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade400,
                         ),
                       ),
                     ],
