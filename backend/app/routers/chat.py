@@ -55,6 +55,32 @@ async def chat(
     level = body.level or current_user.get("level", "N5")
     settings = get_settings()
 
+    try:
+        return await _process_chat(body, user_id, level, settings)
+    except HTTPException:
+        raise  # re-raise HTTP exceptions as-is
+    except Exception as e:
+        import logging
+        import traceback
+        logging.getLogger("uvicorn.error").error(
+            f"Unhandled error in chat endpoint: {e}\n{traceback.format_exc()}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "internal_error",
+                "message": "An unexpected error occurred. Our team has been notified.",
+                "debug": str(e)[:200],
+            },
+        )
+
+
+async def _process_chat(
+    body: ChatRequest,
+    user_id: str,
+    level: str,
+    settings,
+):
     # ── 1. Check usage limit ──
     usage_info = check_usage_limit(user_id)
     if usage_info["lessons_remaining"] <= 0 and usage_info["tier"] == "free":

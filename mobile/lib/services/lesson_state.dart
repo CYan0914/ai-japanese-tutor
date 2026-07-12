@@ -87,6 +87,9 @@ class LessonState extends ChangeNotifier {
     } catch (e) {
       if (e.toString().contains('daily_limit_reached')) {
         error = 'You\'ve used all your free lessons for today. Upgrade to Pro!';
+      } else if (e.toString().contains('internal_error')) {
+        final debug = e.toString().replaceFirst('Exception: internal_error:', '').trim();
+        error = 'Server error. Please try again.${debug.isNotEmpty ? ' ($debug)' : ''}';
       } else if (e.toString().contains('ai_service_error')) {
         error = 'AI service is temporarily unavailable. Please try again in a moment.';
       } else {

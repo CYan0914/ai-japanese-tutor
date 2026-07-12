@@ -95,6 +95,15 @@ class ApiService {
     if (resp.statusCode == 429) {
       throw Exception('daily_limit_reached');
     }
+    if (resp.statusCode == 500) {
+      // Try to extract debug info from response
+      String debug = '';
+      try {
+        final errBody = jsonDecode(resp.body) as Map<String, dynamic>;
+        debug = errBody['detail']?['debug'] ?? '';
+      } catch (_) {}
+      throw Exception('internal_error: $debug');
+    }
     if (resp.statusCode == 502 || resp.statusCode == 503) {
       throw Exception('ai_service_error');
     }
