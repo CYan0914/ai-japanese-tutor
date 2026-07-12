@@ -52,24 +52,45 @@ class ApiService {
     String level = 'N5',
     String? audioBase64,
   }) async {
+    return _postWithAuth(
+      path: '/chat',
+      body: {
+        'message': message,
+        'level': level,
+        if (audioBase64 != null) 'audio': audioBase64,
+      },
+      fromJson: ChatResponse.fromJson,
+    );
+  }
+
+  // ── Core HTTP helper with auto-retry on 401 ──
+
+  static Future<T> _postWithAuth<T>({
+    required String path,
+    required Map<String, dynamic> body,
+    required T Function(Map<String, dynamic>) fromJson,
+  }) async {
     final token = await ensureToken();
 
-    final body = <String, dynamic>{
-      'message': message,
-      'level': level,
-    };
-    if (audioBase64 != null) {
-      body['audio'] = audioBase64;
+    Future<http.Response> doPost(String t) {
+      return http.post(
+        Uri.parse('${AppConstants.apiBaseUrl}$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $t',
+        },
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 60));
     }
 
-    final resp = await http.post(
-      Uri.parse('${AppConstants.apiBaseUrl}/chat'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 60));
+    var resp = await doPost(token);
+
+    // Token expired (e.g. server restarted) — clear and retry once
+    if (resp.statusCode == 401) {
+      await clearToken();
+      final newToken = await ensureToken();
+      resp = await doPost(newToken);
+    }
 
     if (resp.statusCode == 429) {
       throw Exception('daily_limit_reached');
@@ -82,6 +103,6 @@ class ApiService {
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    return ChatResponse.fromJson(data);
+    return fromJson(data);
   }
 }
