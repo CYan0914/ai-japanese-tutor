@@ -69,10 +69,13 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode(body),
-    );
+    ).timeout(const Duration(seconds: 60));
 
     if (resp.statusCode == 429) {
       throw Exception('daily_limit_reached');
+    }
+    if (resp.statusCode == 502 || resp.statusCode == 503) {
+      throw Exception('ai_service_error');
     }
     if (resp.statusCode != 200) {
       throw Exception('Chat API error: ${resp.statusCode}');

@@ -102,11 +102,22 @@ async def chat(
 
     # ── 4. Call LLM ──
     tutor = get_tutor()
-    result = tutor.chat(
-        user_message=transcribed_text,
-        history=history,
-        level=level,
-    )
+    try:
+        result = tutor.chat(
+            user_message=transcribed_text,
+            history=history,
+            level=level,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger("uvicorn.error").error(f"LLM call failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error": "ai_service_error",
+                "message": "The AI teaching service is temporarily unavailable. Please try again.",
+            },
+        )
 
     # ── 5. Update pronunciation score with LLM evaluation ──
     if pronunciation_score and result.get("evaluation"):

@@ -81,8 +81,18 @@ class LessonState extends ChangeNotifier {
     } catch (e) {
       if (e.toString().contains('daily_limit_reached')) {
         error = 'You\'ve used all your free lessons for today. Upgrade to Pro!';
+      } else if (e.toString().contains('ai_service_error')) {
+        error = 'AI service is temporarily unavailable. Please try again in a moment.';
       } else {
-        error = 'Something went wrong. Please try again.';
+        // Show actual error so we can debug. For production, replace with generic message.
+        final msg = e.toString();
+        if (msg.contains('SocketException') || msg.contains('HandshakeException')) {
+          error = 'Cannot connect to server. Check your internet connection.';
+        } else if (msg.contains('timeout') || msg.contains('TimeoutException')) {
+          error = 'Request timed out. Please try again.';
+        } else {
+          error = 'Something went wrong: ${msg.length > 120 ? '${msg.substring(0, 120)}...' : msg}';
+        }
       }
     }
 
