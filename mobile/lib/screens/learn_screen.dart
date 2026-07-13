@@ -51,7 +51,7 @@ class LearnScreen extends StatelessWidget {
                     child: _buildGrid(context, grid, state),
                   ),
                   // ん row
-                  _buildNRow(state),
+                  _buildNRow(state, context),
                 ],
               ),
             ),
@@ -202,7 +202,7 @@ class LearnScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNRow(KanaState state) {
+  Widget _buildNRow(KanaState state, BuildContext context) {
     final n = KanaData.n(state.currentType);
     return Padding(
       padding: const EdgeInsets.only(left: 36 + 4, right: 4, bottom: 4),

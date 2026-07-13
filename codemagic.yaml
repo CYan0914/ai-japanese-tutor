@@ -17,8 +17,11 @@ workflows:
     working_directory: mobile
     environment:
       flutter: stable
-      xcode: latest       # Codemagic provides macOS runners
+      xcode: latest
       cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.sakurasensei.app
     triggering:
       events:
         - push
@@ -30,8 +33,8 @@ workflows:
         script: flutter pub get
       - name: Run tests
         script: flutter test
-        ignore_failure: true  # don't block build on test failure during MVP
-      - name: Build IPA
+        ignore_failure: true
+      - name: Build iOS with Codemagic automatic signing
         script: |
           flutter build ipa --release \
             --export-method=app-store \
