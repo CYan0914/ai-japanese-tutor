@@ -47,10 +47,9 @@ workflows:
         submit_to_testflight: true
         # beta_groups:                          # uncomment to auto-distribute
         #   - "Sakura Early Testers"
-    # Notify on success
-    email:
-      recipients:
-        - haojia.zhang@icloud.com
+      email:
+        recipients:
+          - haojia.zhang@icloud.com
 
   # ── Android Build (when you need it) ──
   android-build:
