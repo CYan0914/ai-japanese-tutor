@@ -1,0 +1,9 @@
+# Sakura Tutor — App metadata
+# Replace BUNDLE_ID and APPLE_ID with actual values from App Store Connect
+
+app_identifier("com.sakurasensei.app")
+apple_id("haojia.zhang@icloud.com")
+
+# If you have multiple teams, specify:
+# itc_team_id("123456789")
+# team_id("ABCDEF1234")

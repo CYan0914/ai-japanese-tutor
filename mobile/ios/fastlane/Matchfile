@@ -1,0 +1,24 @@
+# fastlane match — code signing
+# Creates a private git repo to share certificates & provisioning profiles
+# across your team and CI machines. Run ONCE from any Mac, then CI pulls from git.
+#
+# First-time setup (on a Mac):
+#   1. fastlane match init
+#   2. fastlane match development   # dev certs
+#   3. fastlane match appstore      # distribution certs
+#
+# After setup, CI (Codemagic / GitHub Actions) reads certs from this repo.
+
+git_url("git@github.com:YOUR_USERNAME/sakura-certificates.git") # TODO: private certs repo
+
+storage_mode("git")
+type("appstore")  # "development" for debug, "appstore" for TestFlight/App Store
+
+# Apple ID for signing
+username("haojia.zhang@icloud.com")
+
+# Bundle identifier must match App Store Connect
+app_identifier("com.sakurasensei.app")
+
+# Generate new certs if existing ones expire (CI-safe)
+force_for_new_devices(false)

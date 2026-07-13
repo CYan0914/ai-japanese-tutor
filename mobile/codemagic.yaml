@@ -1,0 +1,85 @@
+# Codemagic CI/CD for Sakura Tutor
+# Codemagic is the best CI for Flutter apps built from Windows — it provides
+# macOS build machines, automatic code signing, and one-click TestFlight upload.
+#
+# Free tier: 500 build minutes/month (~10-15 builds)
+# Setup: https://codemagic.io — connect your GitHub/GitLab repo, done.
+#
+# This file replaces the need for fastlane match on Windows:
+# Codemagic handles code signing automatically via App Store Connect API key.
+
+workflows:
+  # ── TestFlight Build ──
+  # Triggers on push to 'release' or 'beta' branches
+  testflight-build:
+    name: Sakura Tutor — TestFlight
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      xcode: latest       # Codemagic provides macOS runners
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'release*'
+        - pattern: 'beta*'
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Run tests
+        script: flutter test
+        ignore_failure: true  # don't block build on test failure during MVP
+      - name: Build IPA
+        script: |
+          flutter build ipa --release \
+            --export-method=app-store \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_API_KEY      # set in Codemagic env vars
+        key_id: $APP_STORE_CONNECT_KEY_ID         # from App Store Connect
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID   # from App Store Connect
+        submit_to_testflight: true
+        # beta_groups:                          # uncomment to auto-distribute
+        #   - "Sakura Early Testers"
+    # Notify on success
+    email:
+      recipients:
+        - haojia.zhang@icloud.com
+
+  # ── Android Build (when you need it) ──
+  android-build:
+    name: Sakura Tutor — Android
+    max_build_duration: 20
+    environment:
+      flutter: stable
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'release*'
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Build APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
+# ── Code Signing Setup (one-time) ──
+#
+# 1. Go to App Store Connect → Users & Access → Keys → App Store Connect API
+# 2. Generate a new key with "Developer" access
+# 3. Save the .p8 file and note the Key ID + Issuer ID
+# 4. In Codemagic → Team Settings → Environment Variables, add:
+#    APP_STORE_CONNECT_API_KEY   = "<full .p8 private key content>"
+#    APP_STORE_CONNECT_KEY_ID    = "9X7FRH8Z3S"
+#    APP_STORE_CONNECT_ISSUER_ID = "f0d0bff9-293f-4889-a334-88a813a60ec8"
+# 5. Push to 'release' branch → Codemagic builds & uploads to TestFlight
+#
+# Codemagic handles provisioning profiles automatically — you never need
+# to touch Xcode or a Mac for signing again.

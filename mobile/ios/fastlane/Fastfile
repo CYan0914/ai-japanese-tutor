@@ -1,0 +1,48 @@
+# Sakura Tutor — Fastlane lanes
+# Run from ios/ directory: bundle exec fastlane <lane>
+
+default_platform(:ios)
+
+platform :ios do
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Ensure cocoapods are installed
+    cocoapods
+
+    # Bump build number automatically
+    increment_build_number
+
+    # Build the Flutter app (run from project root)
+    Dir.chdir("..") do
+      sh("flutter", "build", "ipa", "--release", "--export-method=app-store")
+    end
+
+    # Upload to TestFlight
+    # Uses fastlane match for signing if configured, otherwise manual
+    upload_to_testflight(
+      skip_waiting_for_build_processing: false,
+      # Set to true if you want the lane to finish immediately after upload
+      # The build still needs ~20-40 min processing before TestFlight testers see it
+    )
+
+    # Send Slack/notification on success (optional — uncomment and configure)
+    # slack(
+    #   message: "✅ Sakura Tutor #{lane_context[SharedValues::BUILD_NUMBER]} uploaded to TestFlight",
+    #   success: true,
+    # )
+  end
+
+  desc "Generate new code signing certificates and provisioning profiles"
+  lane :sign do
+    match(type: "development")
+    match(type: "appstore")
+  end
+
+  desc "Refresh provisioning profiles (run when adding new devices)"
+  lane :refresh_profiles do
+    match(type: "development", force_for_new_devices: true)
+    match(type: "appstore", force_for_new_devices: true)
+  end
+
+end
