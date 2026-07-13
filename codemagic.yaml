@@ -14,6 +14,7 @@ workflows:
   testflight-build:
     name: Sakura Tutor — TestFlight
     max_build_duration: 30
+    working_directory: mobile
     environment:
       flutter: stable
       xcode: latest       # Codemagic provides macOS runners
@@ -55,6 +56,7 @@ workflows:
   android-build:
     name: Sakura Tutor — Android
     max_build_duration: 20
+    working_directory: mobile
     environment:
       flutter: stable
     triggering:
