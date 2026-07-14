@@ -75,19 +75,12 @@ jobs:
         run: |
           set -euxo pipefail
           echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > /tmp/profile.mobileprovision
-          echo "=== Decoded file size ==="
+          echo "=== Decoded size ==="
           wc -c /tmp/profile.mobileprovision
-          echo "=== Decode via security cms ==="
-          security cms -D -i /tmp/profile.mobileprovision 2>&1 || echo "⚠ security cms failed"
-          echo "=== Extract UUID ==="
-          UUID=$(security cms -D -i /tmp/profile.mobileprovision 2>/dev/null | grep -A1 UUID | grep -oE '[A-Fa-f0-9-]{36}')
-          if [ -z "$UUID" ]; then
-            echo "⚠ UUID empty, trying grep directly..."
-            UUID=$(grep -aA1 UUID /tmp/profile.mobileprovision | grep -oE '[A-Fa-f0-9-]{36}')
-          fi
-          echo "UUID=$UUID"
+          echo "=== Verify with security cms ==="
+          security cms -D -i /tmp/profile.mobileprovision || true
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp /tmp/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          cp /tmp/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9.mobileprovision"
           echo "=== Installed profiles ==="
           ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
 
