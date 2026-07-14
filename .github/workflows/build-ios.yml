@@ -1,39 +1,39 @@
 # Sakura Sensei — iOS Build & TestFlight Upload
 #
 # 触发方式:
-#   - push 到 master 分支（带 [beta] 前缀）
+#   - push 到 master 分支
 #   - 或手动在 Actions 页面触发 (workflow_dispatch)
 #
 # 前置条件 — 仓库 Secrets (Settings → Secrets and variables → Actions):
-#   BUILD_CERTIFICATE_BASE64      — Apple Distribution 证书(.p12) 的 Base64
-#   P12_PASSWORD                  — .p12 导出密码
-#   BUILD_PROVISION_PROFILE_BASE64 — App Store 描述文件的 Base64
-#   APP_STORE_CONNECT_USERNAME    — haojia.zhang@icloud.com
-#   APP_STORE_CONNECT_PASSWORD    — App 专用密码 (需生成)
+#   BUILD_CERTIFICATE_BASE64          — Apple Distribution 证书(.p12) 的 Base64
+#   P12_PASSWORD                      — .p12 导出密码
+#   BUILD_PROVISION_PROFILE_BASE64    — App Store 描述文件的 Base64
+#   APP_STORE_CONNECT_USERNAME        — haojia.zhang@icloud.com
+#   APP_STORE_CONNECT_PASSWORD        — App 专用密码
 
 name: Build & Upload to TestFlight
 
 on:
   push:
     branches: [ "master" ]
-  workflow_dispatch:  # 支持手动触发
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: "3.31"  # latest stable
+  FLUTTER_VERSION: "3.31"
 
 jobs:
   build:
     name: Build IPA + TestFlight
-    runs-on: macos-latest          # 必须 macOS（iOS 编译 + 签名）
+    runs-on: macos-latest
     timeout-minutes: 45
 
     defaults:
       run:
-        working-directory: mobile  # Flutter 项目在 mobile 子目录
+        working-directory: mobile
 
     steps:
       - name: ⬇️ Checkout code
@@ -52,7 +52,7 @@ jobs:
 
       - name: 🧪 Run tests
         run: flutter test
-        continue-on-error: true   # Test 失败不阻断构建
+        continue-on-error: true
 
       # ── 代码签名 ──
       - name: 🔐 Import certificate
@@ -61,12 +61,9 @@ jobs:
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PATH: /tmp/AppSigning.keychain-db
         run: |
-          # 创建临时 keychain
           security create-keychain -p temp1234 "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 7200 "$KEYCHAIN_PATH"
           security unlock-keychain -p temp1234 "$KEYCHAIN_PATH"
-
-          # 解码并导入证书
           echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > /tmp/cert.p12
           security import /tmp/cert.p12 -k "$KEYCHAIN_PATH" \
             -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
@@ -82,38 +79,12 @@ jobs:
           cp /tmp/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
           echo "Profile installed: $UUID"
 
-      - name: 🏗️ Build iOS (no-codesign)
+      - name: 🏗️ Build & Sign IPA
         run: |
-          flutter build ios --release --no-codesign \
+          flutter build ipa --release \
+            --export-method=app-store \
             --build-name=1.0.0 \
             --build-number=$GITHUB_RUN_NUMBER
-
-      - name: 📦 Archive & Export IPA
-        env:
-          EXPORT_PLIST: |
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0"><dict>
-              <key>method</key><string>app-store</string>
-              <key>teamID</key><string></string>
-              <key>uploadSymbols</key><true/>
-              <key>signingStyle</key><string>manual</string>
-            </dict></plist>
-        run: |
-          echo "$EXPORT_PLIST" > /tmp/export.plist
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath /tmp/Runner.xcarchive \
-            archive \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="Sakura Sensei App Store" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
-          xcodebuild -exportArchive \
-            -archivePath /tmp/Runner.xcarchive \
-            -exportOptionsPlist /tmp/export.plist \
-            -exportPath /tmp/ipa
 
       - name: 🚀 Upload to TestFlight
         env:
@@ -121,7 +92,7 @@ jobs:
           APP_STORE_CONNECT_PASSWORD: ${{ secrets.APP_STORE_CONNECT_PASSWORD }}
         run: |
           xcrun altool --upload-app \
-            -f /tmp/ipa/Sakura\ Tutor.ipa \
+            -f build/ios/ipa/Runner.ipa \
             -u "$APP_STORE_CONNECT_USERNAME" \
             -p "$APP_STORE_CONNECT_PASSWORD" \
             --type ios \
@@ -132,4 +103,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Sakura-Sensei-IPA
-          path: /tmp/ipa/*.ipa
+          path: mobile/build/ios/ipa/*.ipa
