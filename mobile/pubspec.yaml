@@ -38,9 +38,6 @@ dependencies:
   just_audio: ^0.9.42
   google_fonts: ^6.2.0
 
-dependency_overrides:
-  record_platform_interface: 1.6.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
