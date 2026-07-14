@@ -76,23 +76,15 @@ jobs:
 
       - name: 📄 Generate Export Options
         run: |
-          cat > /tmp/export-options.plist << 'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>app-store</string>
-    <key>teamID</key>
-    <string>H4VQ9X6KYK</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>com.sakurasensei.app</key>
-        <string>Sakura Sensei App Store</string>
-    </dict>
-</dict>
-</plist>
-PLIST
+          python3 -c "
+import plistlib
+opts = {
+    'method': 'app-store',
+    'teamID': 'H4VQ9X6KYK',
+    'provisioningProfiles': {'com.sakurasensei.app': 'Sakura Sensei App Store'},
+}
+plistlib.dump(opts, open('/tmp/export-options.plist', 'wb'))
+"
 
       - name: 🏗️ Build & Sign IPA
         run: |
