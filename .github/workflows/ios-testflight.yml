@@ -30,26 +30,42 @@ jobs:
         env:
           BUILD_CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        shell: bash
         run: |
-          KEYCHAIN="ci-signing.keychain-db"
-          KEYCHAIN_PATH="$RUNNER_TEMP/$KEYCHAIN"
+          set -x
+          KEYCHAIN_PATH="$RUNNER_TEMP/ci-signing.keychain-db"
+
+          echo "$BUILD_CERT_BASE64" | head -c 80
+          echo ""
+          echo "$BUILD_CERT_BASE64" | base64 --decode > /tmp/cert.p12 2>&1
+          echo "Decode exit: $?"
+          ls -la /tmp/cert.p12
+          file /tmp/cert.p12
 
           security create-keychain -p "" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
 
-          echo "$BUILD_CERT_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -A -T /usr/bin/codesign -T /usr/bin/security
+          security import /tmp/cert.p12 -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -A 2>&1
+          echo "Import exit: $?"
+
           security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning
 
       - name: Install provisioning profile
         env:
           PROVISION_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        shell: bash
         run: |
+          set -x
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_DIR"
-          echo "$PROVISION_BASE64" | base64 --decode > "$PROFILE_DIR/ci.mobileprovision"
+          echo "$PROVISION_BASE64" | head -c 40
+          echo ""
+          echo "$PROVISION_BASE64" | base64 --decode > "$PROFILE_DIR/ci.mobileprovision" 2>&1
+          echo "Decode exit: $?"
+          ls -la "$PROFILE_DIR/ci.mobileprovision"
 
       - name: Show Xcode version
         run: |
@@ -66,19 +82,19 @@ jobs:
         env:
           ASC_USERNAME: ${{ secrets.APP_STORE_CONNECT_USERNAME }}
           ASC_PASSWORD: ${{ secrets.APP_STORE_CONNECT_PASSWORD }}
+        shell: bash
         run: |
+          set -x
           IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Uploading $IPA ..."
+          if [ -z "$IPA" ]; then
+            echo "No IPA found!"
+            ls -la build/ios/ipa/ 2>/dev/null || echo "No build/ios/ipa dir"
+            exit 1
+          fi
+          echo "Uploading $IPA ($(wc -c < "$IPA") bytes) ..."
 
           xcrun altool --upload-app \
             -f "$IPA" \
             -t ios \
             -u "$ASC_USERNAME" \
-            -p "$ASC_PASSWORD" \
-            --verbose 2>&1 || {
-              echo "altool failed — trying iTMSTransporter..."
-              xcrun iTMSTransporter -m upload \
-                -f "$IPA" \
-                -u "$ASC_USERNAME" \
-                -p "$ASC_PASSWORD"
-            }
+            -p "$ASC_PASSWORD"
