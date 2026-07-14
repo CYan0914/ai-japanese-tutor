@@ -74,23 +74,11 @@ jobs:
             -configuration Release \
             -showBuildSettings 2>&1 | grep -E "PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER"
 
-      - name: 📄 Generate Export Options
-        run: |
-          python3 -c "
-import plistlib
-opts = {
-    'method': 'app-store',
-    'teamID': 'H4VQ9X6KYK',
-    'provisioningProfiles': {'com.sakurasensei.app': 'Sakura Sensei App Store'},
-}
-plistlib.dump(opts, open('/tmp/export-options.plist', 'wb'))
-"
-
       - name: 🏗️ Build & Sign IPA
         run: |
           flutter build ipa --release \
             --export-method=app-store \
-            --export-options-plist=/tmp/export-options.plist \
+            --export-options-plist=ios/ExportOptions.plist \
             --build-number=${GITHUB_RUN_NUMBER}
 
       - name: 🚀 Upload to TestFlight
