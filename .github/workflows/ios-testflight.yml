@@ -61,11 +61,14 @@ jobs:
           set -x
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_DIR"
-          echo "$PROVISION_BASE64" | head -c 40
-          echo ""
-          echo "$PROVISION_BASE64" | base64 --decode > "$PROFILE_DIR/ci.mobileprovision" 2>&1
-          echo "Decode exit: $?"
-          ls -la "$PROFILE_DIR/ci.mobileprovision"
+          echo "$PROVISION_BASE64" | base64 --decode > /tmp/profile.mobileprovision
+          echo "=== Decoded size ==="
+          wc -c /tmp/profile.mobileprovision
+          echo "=== Verify with security cms ==="
+          security cms -D -i /tmp/profile.mobileprovision || true
+          cp /tmp/profile.mobileprovision "$PROFILE_DIR/d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9.mobileprovision"
+          echo "=== Installed profiles ==="
+          ls -la "$PROFILE_DIR/"
 
       - name: Show Xcode version
         run: |
