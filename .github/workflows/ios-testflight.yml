@@ -79,7 +79,8 @@ jobs:
         run: |
           flutter build ipa --release \
             --export-method=app-store \
-            --build-number=${GITHUB_RUN_NUMBER}
+            --build-number=${GITHUB_RUN_NUMBER} \
+            --xcode-build-args="PROVISIONING_PROFILE_SPECIFIER='Sakura Sensei App Store' PROVISIONING_PROFILE_UUID=d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9"
 
       - name: Upload to TestFlight
         env:
