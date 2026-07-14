@@ -65,6 +65,16 @@ jobs:
           cp /tmp/profile.mobileprovision "$PROFILE_DIR/d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9.mobileprovision"
           ls -la "$PROFILE_DIR/"
 
+      - name: 🔧 Select Xcode 26+
+        run: |
+          ls /Applications | grep -i xcode
+          XCODE=$(ls /Applications | grep -i "xcode" | sort | tail -1)
+          echo "Latest Xcode found: $XCODE"
+          if [ -n "$XCODE" ]; then
+            sudo xcode-select -s "/Applications/$XCODE/Contents/Developer"
+          fi
+          xcodebuild -version
+
       - name: 🔍 Debug - resolve xcodebuild settings
         run: |
           xcodebuild -version
