@@ -35,22 +35,20 @@ jobs:
           set -x
           KEYCHAIN_PATH="$RUNNER_TEMP/ci-signing.keychain-db"
 
-          echo "$BUILD_CERT_BASE64" | head -c 80
-          echo ""
-          echo "$BUILD_CERT_BASE64" | base64 --decode > /tmp/cert.p12 2>&1
+          echo "$BUILD_CERT_BASE64" | base64 --decode > /tmp/cert.p12
           echo "Decode exit: $?"
-          ls -la /tmp/cert.p12
           file /tmp/cert.p12
 
           security create-keychain -p "" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "" "$KEYCHAIN_PATH"
 
-          security import /tmp/cert.p12 -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -A 2>&1
+          security import /tmp/cert.p12 -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -A
           echo "Import exit: $?"
 
           security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
+          echo "=== Identities in keychain ==="
           security find-identity -v -p codesigning
 
       - name: Install provisioning profile
@@ -62,26 +60,27 @@ jobs:
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_DIR"
           echo "$PROVISION_BASE64" | base64 --decode > /tmp/profile.mobileprovision
-          echo "=== Decoded size ==="
           wc -c /tmp/profile.mobileprovision
-          echo "=== Verify with security cms ==="
-          security cms -D -i /tmp/profile.mobileprovision || true
+          security cms -D -i /tmp/profile.mobileprovision
           cp /tmp/profile.mobileprovision "$PROFILE_DIR/d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9.mobileprovision"
-          echo "=== Installed profiles ==="
           ls -la "$PROFILE_DIR/"
 
-      - name: Show Xcode version
+      - name: 🔍 Debug - resolve xcodebuild settings
         run: |
           xcodebuild -version
-          xcrun --show-sdk-version -sdk iphoneos
+          echo "=== Show how xcodebuild resolves signing ==="
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -showBuildSettings 2>&1 | grep -E "PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER"
 
-      - name: Build IPA
+      - name: 🏗️ Build & Sign IPA
         run: |
           flutter build ipa --release \
             --export-method=app-store \
             --build-number=${GITHUB_RUN_NUMBER}
 
-      - name: Upload to TestFlight
+      - name: 🚀 Upload to TestFlight
         env:
           ASC_USERNAME: ${{ secrets.APP_STORE_CONNECT_USERNAME }}
           ASC_PASSWORD: ${{ secrets.APP_STORE_CONNECT_PASSWORD }}
