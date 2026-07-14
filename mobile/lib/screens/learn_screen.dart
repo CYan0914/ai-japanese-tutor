@@ -221,11 +221,12 @@ class LearnScreen extends StatelessWidget {
             flex: 3,
             child: AspectRatio(
               aspectRatio: 1.7,
-              child: KanaTile(
-                kana: n,
-                level: state.levelFor(n.romaji),
-                onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(
+              child: Builder(
+                builder: (ctx) => KanaTile(
+                  kana: n,
+                  level: state.levelFor(n.romaji),
+                  onTap: () {
+                    Navigator.of(ctx).push(MaterialPageRoute(
                     builder: (_) => KanaDetailScreen(
                       kana: n,
                       level: state.levelFor(n.romaji),
@@ -233,6 +234,7 @@ class LearnScreen extends StatelessWidget {
                   ));
                 },
               ),
+            ),
             ),
           ),
           const Spacer(flex: 7),

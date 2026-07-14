@@ -34,9 +34,12 @@ dependencies:
   http: ^1.2.0
   provider: ^6.1.0
   shared_preferences: ^2.3.0
-  record: ^5.2.0
+  record: 5.1.0
   just_audio: ^0.9.42
   google_fonts: ^6.2.0
+
+dependency_overrides:
+  record_platform_interface: 1.6.0
 
 dev_dependencies:
   flutter_test:

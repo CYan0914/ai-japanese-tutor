@@ -133,7 +133,7 @@ class _WritingScreenState extends State<WritingScreen> {
                   painter: _WritingPainter(
                     strokes: _strokes,
                     currentStroke: _currentStroke,
-                    brush: _paint,
+                    strokePaint: _paint,
                     guideChar: widget.kana.character,
                     guidePaint: _guidePaint,
                   ),
@@ -213,14 +213,14 @@ class _ToolBtn extends StatelessWidget {
 class _WritingPainter extends CustomPainter {
   final List<List<Offset>> strokes;
   final List<Offset>? currentStroke;
-  final Paint brush;
+  final Paint strokePaint;
   final String guideChar;
   final Paint guidePaint;
 
   _WritingPainter({
     required this.strokes,
     required this.currentStroke,
-    required this.brush,
+    required this.strokePaint,
     required this.guideChar,
     required this.guidePaint,
   });
@@ -268,7 +268,7 @@ class _WritingPainter extends CustomPainter {
       for (var i = 1; i < stroke.length; i++) {
         path.lineTo(stroke[i].dx, stroke[i].dy);
       }
-      canvas.drawPath(path, brush);
+      canvas.drawPath(path, strokePaint);
     }
 
     // Draw current in-progress stroke
@@ -277,7 +277,7 @@ class _WritingPainter extends CustomPainter {
       for (var i = 1; i < currentStroke!.length; i++) {
         path.lineTo(currentStroke![i].dx, currentStroke![i].dy);
       }
-      canvas.drawPath(path, brush);
+      canvas.drawPath(path, strokePaint);
     }
   }
 
