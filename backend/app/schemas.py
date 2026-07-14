@@ -18,6 +18,11 @@ class ChatRequest(BaseModel):
     )
 
 
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=200)
+    voice: str = Field(default="ja-JP-NanamiNeural", max_length=50)
+
+
 class Correction(BaseModel):
     original: str = ""
     corrected: str = ""

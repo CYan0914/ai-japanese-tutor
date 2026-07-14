@@ -37,7 +37,7 @@ class AudioService {
   Future<void> playUrl(String url) async {
     await _player.stop();
     if (_isDataUri(url)) {
-      final filePath = await _dataUriToFile(url);
+      final filePath = await dataUriToFile(url);
       await _player.setFilePath(filePath);
     } else {
       await _player.setUrl(url);
@@ -57,7 +57,7 @@ class AudioService {
   static bool _isDataUri(String url) => url.startsWith('data:');
 
   /// Decode a data URI to a temp file. Returns the file path.
-  static Future<String> _dataUriToFile(String dataUri) async {
+  static Future<String> dataUriToFile(String dataUri) async {
     // Parse: data:audio/mp3;base64,<data>
     final commaIdx = dataUri.indexOf(',');
     if (commaIdx == -1) throw Exception('Invalid data URI');

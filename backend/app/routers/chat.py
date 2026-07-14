@@ -19,6 +19,7 @@ from app.schemas import (
     Correction,
     Evaluation,
     PronunciationScore,
+    TTSRequest,
     TutorResponseContent,
     UsageInfo,
 )
@@ -236,3 +237,24 @@ async def _process_chat(
             tier=final_usage.get("tier", "free"),
         ),
     )
+
+
+@router.post("/tts")
+async def text_to_speech(
+    body: TTSRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Synthesize any Japanese text to speech (used by kana audio, etc.).
+
+    Returns a data URI so the client can play it immediately without storage.
+    Does NOT count toward daily usage limits.
+    """
+    try:
+        tts_bytes = await synthesize_tts(body.text)
+        audio_b64 = base64.b64encode(tts_bytes).decode()
+        return {"audio_url": f"data:audio/mp3;base64,{audio_b64}"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "tts_failed", "message": str(e)[:200]},
+        )

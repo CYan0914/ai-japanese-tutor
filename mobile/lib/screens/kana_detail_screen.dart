@@ -1,11 +1,14 @@
-/// Single kana detail — large display, write practice, mark progress.
+/// Single kana detail — large display, listen to pronunciation, practice, mark progress.
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import '../models/kana.dart';
+import '../services/api_service.dart';
+import '../services/audio_service.dart';
 import '../services/kana_state.dart';
 import 'writing_screen.dart';
 
-class KanaDetailScreen extends StatelessWidget {
+class KanaDetailScreen extends StatefulWidget {
   final Kana kana;
   final MasteryLevel level;
 
@@ -16,7 +19,45 @@ class KanaDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<KanaDetailScreen> createState() => _KanaDetailScreenState();
+}
+
+class _KanaDetailScreenState extends State<KanaDetailScreen> {
+  bool _isPlaying = false;
+  final _player = AudioPlayer();
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playPronunciation() async {
+    if (_isPlaying) return;
+    setState(() => _isPlaying = true);
+
+    try {
+      final audioUrl = await ApiService.tts(widget.kana.character);
+      final filePath = await AudioService.dataUriToFile(audioUrl);
+      await _player.setFilePath(filePath);
+      await _player.play();
+      await _player.playerStateStream
+          .firstWhere((s) => s.processingState == ProcessingState.completed);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not play audio: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPlaying = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final kana = widget.kana;
+    final level = widget.level;
     return Scaffold(
       appBar: AppBar(
         title: Text(kana.character),
@@ -29,27 +70,64 @@ class KanaDetailScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Large kana display
-            Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: _levelColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: _levelColor.withOpacity(0.3),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  kana.character,
-                  style: const TextStyle(
-                    fontSize: 88,
-                    fontWeight: FontWeight.bold,
+            // Large kana display with speaker icon overlay
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: _levelColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _levelColor.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      kana.character,
+                      style: const TextStyle(
+                        fontSize: 88,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                // Speaker icon button at bottom-right of the kana card
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Material(
+                    color: Colors.pink.shade100.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _isPlaying ? null : _playPronunciation,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        child: _isPlaying
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.pink.shade800,
+                                ),
+                              )
+                            : Icon(
+                                Icons.volume_up,
+                                color: Colors.pink.shade800,
+                                size: 24,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 
@@ -125,7 +203,7 @@ class KanaDetailScreen extends StatelessWidget {
     String label;
     IconData icon;
     Color color;
-    switch (level) {
+    switch (widget.level) {
       case MasteryLevel.unseen:
         label = 'New';
         icon = Icons.circle_outlined;
@@ -151,7 +229,7 @@ class KanaDetailScreen extends StatelessWidget {
   }
 
   Color get _levelColor {
-    switch (level) {
+    switch (widget.level) {
       case MasteryLevel.unseen: return Colors.grey;
       case MasteryLevel.learning: return Colors.orange;
       case MasteryLevel.familiar: return Colors.amber;

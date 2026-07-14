@@ -63,6 +63,24 @@ class ApiService {
     );
   }
 
+  // ── TTS (for kana pronunciation etc.) ──
+
+  /// Synthesize Japanese text to speech. Returns a data URI audio URL.
+  static Future<String> tts(String text) async {
+    final token = await ensureToken();
+    final resp = await http.post(
+      Uri.parse('${AppConstants.apiBaseUrl}/tts'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'text': text}),
+    ).timeout(const Duration(seconds: 30));
+    if (resp.statusCode != 200) throw Exception('TTS failed: ${resp.statusCode}');
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    return data['audio_url'] as String;
+  }
+
   // ── Core HTTP helper with auto-retry on 401 ──
 
   static Future<T> _postWithAuth<T>({

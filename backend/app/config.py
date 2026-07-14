@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""
 
     # ── Rate Limit ──
-    free_daily_limit: int = 5
+    free_daily_limit: int = 10
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
