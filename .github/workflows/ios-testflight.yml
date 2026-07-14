@@ -77,7 +77,6 @@ jobs:
       - name: 🏗️ Build & Sign IPA
         run: |
           flutter build ipa --release \
-            --export-method=app-store \
             --export-options-plist=ios/ExportOptions.plist \
             --build-number=${GITHUB_RUN_NUMBER}
 
