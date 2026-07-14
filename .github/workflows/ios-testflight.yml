@@ -74,10 +74,31 @@ jobs:
             -configuration Release \
             -showBuildSettings 2>&1 | grep -E "PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER"
 
+      - name: 📄 Generate Export Options
+        run: |
+          cat > /tmp/export-options.plist << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>teamID</key>
+    <string>H4VQ9X6KYK</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.sakurasensei.app</key>
+        <string>Sakura Sensei App Store</string>
+    </dict>
+</dict>
+</plist>
+PLIST
+
       - name: 🏗️ Build & Sign IPA
         run: |
           flutter build ipa --release \
             --export-method=app-store \
+            --export-options-plist=/tmp/export-options.plist \
             --build-number=${GITHUB_RUN_NUMBER}
 
       - name: 🚀 Upload to TestFlight
