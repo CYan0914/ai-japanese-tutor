@@ -38,6 +38,10 @@ dependencies:
   just_audio: ^0.9.42
   google_fonts: ^6.2.0
 
+dependency_overrides:
+  # record_linux 0.7.2 缺少 record_platform_interface 1.6.0 的 startStream 实现
+  record_linux: ^1.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
