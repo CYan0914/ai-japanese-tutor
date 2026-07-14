@@ -89,8 +89,7 @@ jobs:
           flutter build ipa --release \
             --export-method=app-store \
             --build-name=1.0.0 \
-            --build-number=$GITHUB_RUN_NUMBER \
-            --xcode-build-args="PROVISIONING_PROFILE_UUID=d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9"
+            --build-number=$GITHUB_RUN_NUMBER
 
       - name: 🚀 Upload to TestFlight
         env:
