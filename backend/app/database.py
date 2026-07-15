@@ -43,6 +43,13 @@ def update_level(user_id: str, level: str) -> dict[str, Any]:
     return profile
 
 
+def update_subscription_tier(user_id: str, tier: str) -> dict[str, Any]:
+    """Update user's subscription tier (free / pro)."""
+    profile = get_profile(user_id)
+    profile["subscription_tier"] = tier
+    return profile
+
+
 # ── Conversation History ──
 
 

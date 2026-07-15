@@ -19,9 +19,6 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.sakurasensei.app
     triggering:
       events:
         - push
@@ -34,7 +31,7 @@ workflows:
       - name: Run tests
         script: flutter test
         ignore_failure: true
-      - name: Build iOS with Codemagic automatic signing
+      - name: Build IPA
         script: |
           flutter build ipa --release \
             --export-method=app-store \

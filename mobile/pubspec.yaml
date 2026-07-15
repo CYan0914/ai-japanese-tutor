@@ -37,6 +37,7 @@ dependencies:
   record: 5.1.0
   just_audio: ^0.9.42
   google_fonts: ^6.2.0
+  purchases_flutter: ^10.4.1
 
 dependency_overrides:
   # record_linux 0.7.2 缺少 record_platform_interface 1.6.0 的 startStream 实现

@@ -5,8 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.auth import get_current_user
-from app.database import get_profile, update_level
-from app.schemas import LevelUpdateRequest, LevelUpdateResponse, PhonemeProfile, UserProfile
+from app.database import get_profile, update_level, update_subscription_tier
+from app.schemas import (
+    LevelUpdateRequest,
+    LevelUpdateResponse,
+    PhonemeProfile,
+    SubscriptionSyncRequest,
+    UserProfile,
+)
 from app.services.phoneme_profile import get_phoneme_profile
 
 router = APIRouter()
@@ -36,6 +42,17 @@ async def update_user_level(
 ):
     profile = update_level(current_user["user_id"], body.level)
     return LevelUpdateResponse(level=profile["level"], updated=True)
+
+
+@router.post("/user/subscription")
+async def sync_subscription(
+    body: SubscriptionSyncRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Sync the user's subscription status from RevenueCat to the backend."""
+    tier = "pro" if body.is_pro else "free"
+    update_subscription_tier(current_user["user_id"], tier)
+    return {"status": "ok", "tier": tier}
 
 
 @router.get("/user/phonemes", response_model=PhonemeProfile)

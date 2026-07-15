@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/lesson_state.dart';
 import '../services/api_service.dart';
+import '../services/subscription_service.dart';
 import '../models/tutor_response.dart';
 import '../config/constants.dart';
 
@@ -16,11 +17,20 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   PhonemeProfile? _phonemeProfile;
   bool _loadingProfile = false;
+  bool _isPro = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _checkPro();
+  }
+
+  Future<void> _checkPro() async {
+    try {
+      final pro = await SubscriptionService.isPro();
+      if (mounted) setState(() => _isPro = pro);
+    } catch (_) {}
   }
 
   Future<void> _loadProfile() async {
@@ -96,9 +106,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 10),
                   Consumer<LessonState>(
                     builder: (_, state, __) {
-                      final tier = state.usage?.tier ?? 'free';
+                      final tier = state.usage?.tier ?? (_isPro ? 'pro' : 'free');
                       final remaining =
-                          state.usage?.lessonsRemaining ?? AppConstants.freeDailyLimit;
+                          state.usage?.lessonsRemaining ?? (_isPro ? 999 : AppConstants.freeDailyLimit);
                       return Chip(
                         avatar: Icon(
                           tier == 'pro' ? Icons.star : Icons.menu_book,

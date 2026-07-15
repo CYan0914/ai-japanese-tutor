@@ -87,6 +87,11 @@ class UserProfile(BaseModel):
     created_at: str = ""
 
 
+class SubscriptionSyncRequest(BaseModel):
+    product_id: str = Field(default="", max_length=100)
+    is_pro: bool = Field(default=False)
+
+
 class LevelUpdateRequest(BaseModel):
     level: str = Field(..., pattern=r"^N[1-5]$")
 

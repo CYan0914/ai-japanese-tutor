@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import get_settings
+from app.database import get_profile
 
 # ── Simple token store for MVP ──
 # In production, this would be Supabase Auth + JWT verification.
@@ -79,8 +80,6 @@ def check_usage_limit(user_id: str) -> dict:
 
 
 def _get_user_tier(user_id: str) -> str:
-    """Get user's subscription tier."""
-    for tok, info in _tokens.items():
-        if info["user_id"] == user_id:
-            return info.get("tier", "free")
-    return "free"
+    """Get user's subscription tier from profile."""
+    profile = get_profile(user_id)
+    return profile.get("subscription_tier", "free")

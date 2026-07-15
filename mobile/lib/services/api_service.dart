@@ -133,6 +133,21 @@ class ApiService {
     return fromJson(data);
   }
 
+  // ── Subscription Sync ──
+
+  /// Tell the backend the user's current subscription status.
+  /// Called after every purchase or restore.
+  static Future<void> syncSubscription({
+    required String productId,
+    required bool isPro,
+  }) async {
+    await _postWithAuth<void>(
+      path: '/user/subscription',
+      body: {'product_id': productId, 'is_pro': isPro},
+      fromJson: (_) {},
+    );
+  }
+
   // ── Phoneme Profile ──
 
   static Future<PhonemeProfile> getPhonemeProfile() async {

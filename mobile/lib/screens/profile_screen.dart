@@ -1,13 +1,36 @@
 /// Profile screen — level picker, subscription, sign out.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/constants.dart';
 import '../services/lesson_state.dart';
 import '../services/api_service.dart';
+import '../services/subscription_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  static const _levels = ['N5', 'N4', 'N3', 'N2', 'N1'];
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isPro = false;
+  bool _checkingStatus = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPro();
+  }
+
+  Future<void> _checkPro() async {
+    try {
+      final pro = await SubscriptionService.isPro();
+      if (mounted) setState(() { _isPro = pro; _checkingStatus = false; });
+    } catch (_) {
+      if (mounted) setState(() => _checkingStatus = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +39,6 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: Colors.pink.shade50,
-        foregroundColor: Colors.pink.shade800,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
@@ -36,7 +57,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: state.currentLevel,
-                    items: _levels
+                    items: ['N5', 'N4', 'N3', 'N2', 'N1']
                         .map((l) => DropdownMenuItem(value: l, child: Text(l)))
                         .toList(),
                     onChanged: (v) {
@@ -69,23 +90,32 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        state.usage?.isPro == true
-                            ? Icons.star
-                            : Icons.star_border,
+                        _isPro ? Icons.star : Icons.star_border,
                         color: Colors.amber,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        state.usage?.isPro == true ? 'Pro' : 'Free',
+                        _checkingStatus
+                            ? 'Checking...'
+                            : _isPro
+                                ? 'Pro  Unlimited lessons'
+                                : 'Free  ${AppConstants.freeDailyLimit} lessons/day',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
                   ),
-                  if (state.usage?.isPro != true) ...[
+                  if (!_isPro) ...[
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () => Navigator.of(context).pushNamed('/subscribe'),
-                      child: const Text('Upgrade to Pro - \$9.99/mo'),
+                      child: const Text('Upgrade to Pro'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'From \$${AppConstants.priceMonthly.toStringAsFixed(0)}/mo · '
+                      '\$${AppConstants.priceQuarterly.toStringAsFixed(0)}/quarter · '
+                      '\$${AppConstants.priceYearly.toStringAsFixed(0)}/year',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                     ),
                   ],
                 ],

@@ -1,6 +1,7 @@
 /// Splash screen — checks auth and navigates.
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/subscription_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,7 +20,17 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _init() async {
     await Future.delayed(const Duration(milliseconds: 500));
     try {
-      await ApiService.ensureToken();
+      final token = await ApiService.ensureToken();
+
+      // Init RevenueCat with the user's ID (extracted from token or use a hash)
+      try {
+        // Use the first 16 chars of the token as a stable user identifier
+        final userId = token.length > 16 ? token.substring(0, 16) : token;
+        await SubscriptionService.init(userId);
+      } catch (_) {
+        // RevenueCat not configured yet — continue without it
+      }
+
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/home');
     } catch (_) {
