@@ -109,17 +109,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       final tier = state.usage?.tier ?? (_isPro ? 'pro' : 'free');
                       final remaining =
                           state.usage?.lessonsRemaining ?? (_isPro ? 999 : AppConstants.freeDailyLimit);
-                      return Chip(
-                        avatar: Icon(
-                          tier == 'pro' ? Icons.star : Icons.menu_book,
-                          size: 16,
-                        ),
-                        label: Text(
-                          tier == 'pro' ? 'Unlimited' : '$remaining left',
-                        ),
-                        backgroundColor:
-                            tier == 'pro' ? Colors.amber.shade50 : Colors.grey.shade100,
-                      );
+                      return tier == 'pro'
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade600,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.stars_rounded, size: 16, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Unlimited',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Chip(
+                              avatar: Icon(Icons.menu_book, size: 16),
+                              label: Text('$remaining left'),
+                              backgroundColor: Colors.grey.shade100,
+                            );
                     },
                   ),
                 ],

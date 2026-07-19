@@ -61,20 +61,40 @@ class _LessonScreenState extends State<LessonScreen> {
             builder: (_, state, __) {
               final remaining = state.usage?.lessonsRemaining;
               final tier = state.usage?.tier;
+              final isPro = tier == 'pro';
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: Chip(
-                  label: Text(
-                    tier == 'pro'
-                        ? 'Unlimited'
-                        : '${remaining ?? 5} left',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  backgroundColor: tier == 'pro'
-                      ? Colors.amber.shade100
-                      : Colors.grey.shade100,
-                  visualDensity: VisualDensity.compact,
-                ),
+                child: isPro
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.stars_rounded, size: 14, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Unlimited',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Chip(
+                        label: Text(
+                          '${remaining ?? 5} left',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Colors.grey.shade100,
+                        visualDensity: VisualDensity.compact,
+                      ),
               );
             },
           ),
