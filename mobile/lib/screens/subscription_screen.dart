@@ -59,10 +59,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  /// Find a package by its RevenueCat identifier.
-  Package? _packageById(String rcId) {
+  /// Find a package by its StoreProduct identifier (App Store Connect product ID).
+  Package? _packageById(String productId) {
     try {
-      return _packages.firstWhere((p) => p.identifier == rcId);
+      return _packages.firstWhere((p) => p.storeProduct.identifier == productId);
     } catch (_) {
       return null;
     }
