@@ -18,7 +18,7 @@ class AppConstants {
   static const String productYearly = 'sakura_pro_yearly';
 
   /// Entitlement ID (set in RevenueCat dashboard → Entitlements).
-  static const String entitlementPro = 'pro';
+  static const String entitlementPro = 'Sakura Tutor Pro';
 
   // ── Pricing (for display only — actual prices set in RevenueCat dashboard) ──
   static const double priceMonthly = 9.99;
