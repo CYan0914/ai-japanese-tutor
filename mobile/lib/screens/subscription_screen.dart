@@ -59,10 +59,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  /// Find a package by its StoreProduct identifier (App Store Connect product ID).
-  Package? _packageById(String productId) {
+  /// Find a package by its RevenueCat [PackageType].
+  Package? _packageByType(PackageType type) {
     try {
-      return _packages.firstWhere((p) => p.storeProduct.identifier == productId);
+      return _packages.firstWhere((p) => p.packageType == type);
     } catch (_) {
       return null;
     }
@@ -203,10 +203,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildContent() {
-    // RevenueCat packages loaded
-    final monthly = _packageById(AppConstants.productMonthly);
-    final quarterly = _packageById(AppConstants.productQuarterly);
-    final yearly = _packageById(AppConstants.productYearly);
+    // RevenueCat packages loaded (matched by PackageType on the offering)
+    final monthly = _packageByType(PackageType.monthly);
+    final quarterly = _packageByType(PackageType.threeMonth);
+    final yearly = _packageByType(PackageType.annual);
 
     return Padding(
       padding: const EdgeInsets.all(20),
