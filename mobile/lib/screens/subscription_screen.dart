@@ -233,7 +233,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           // ── 3 pricing tiers ──
           _buildTierCard(
             label: 'Monthly',
-            price: '\$${AppConstants.priceMonthly.toStringAsFixed(0)}',
+            price: '\$${AppConstants.priceMonthly.toStringAsFixed(2)}',
             period: '/month',
             productId: AppConstants.productMonthly,
             package: monthly,
@@ -244,7 +244,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
           _buildTierCard(
             label: 'Quarterly',
-            price: '\$${AppConstants.priceQuarterly.toStringAsFixed(0)}',
+            price: '\$${AppConstants.priceQuarterly.toStringAsFixed(2)}',
             period: '/quarter',
             productId: AppConstants.productQuarterly,
             package: quarterly,
@@ -255,7 +255,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
           _buildTierCard(
             label: 'Yearly',
-            price: '\$${AppConstants.priceYearly.toStringAsFixed(0)}',
+            price: '\$${AppConstants.priceYearly.toStringAsFixed(2)}',
             period: '/year',
             productId: AppConstants.productYearly,
             package: yearly,
