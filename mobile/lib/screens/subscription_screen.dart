@@ -23,6 +23,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _purchasing = false;
   bool _restoring = false;
 
+  // Currently selected package (for visual highlight before purchase)
+  Package? _selectedPackage;
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +72,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Future<void> _purchase(Package package) async {
-    setState(() => _purchasing = true);
+    setState(() {
+      _selectedPackage = package;
+      _purchasing = true;
+    });
     try {
       final info = await SubscriptionService.purchasePackage(package);
       final isPro =
@@ -347,19 +353,32 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       displayPrice = package.storeProduct.priceString;
     }
 
+    final isSelected = package != null && package == _selectedPackage;
+
     return GestureDetector(
       onTap: (_purchasing || package == null)
           ? null
-          : () => _purchase(package),
+          : () {
+              setState(() => _selectedPackage = package);
+              _purchase(package);
+            },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: highlight ? Colors.pink.shade50 : Colors.grey.shade50,
+          color: isSelected
+              ? Colors.green.shade50
+              : highlight
+                  ? Colors.pink.shade50
+                  : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: highlight ? Colors.pink.shade300 : Colors.grey.shade300,
-            width: highlight ? 2 : 1,
+            color: isSelected
+                ? Colors.green.shade400
+                : highlight
+                    ? Colors.pink.shade300
+                    : Colors.grey.shade300,
+            width: isSelected ? 2.5 : (highlight ? 2 : 1),
           ),
         ),
         child: Row(

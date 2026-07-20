@@ -1,8 +1,10 @@
 /// Lesson Screen — the core chat UI.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/constants.dart';
 import '../models/chat_message.dart';
 import '../services/lesson_state.dart';
+import '../services/subscription_service.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/record_button.dart';
 import '../widgets/pronunciation_card.dart';
@@ -19,6 +21,20 @@ class _LessonScreenState extends State<LessonScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   bool _isTextMode = true;
+  bool _isPro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPro();
+  }
+
+  Future<void> _checkPro() async {
+    try {
+      final pro = await SubscriptionService.isPro();
+      if (mounted) setState(() => _isPro = pro);
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -61,7 +77,7 @@ class _LessonScreenState extends State<LessonScreen> {
             builder: (_, state, __) {
               final remaining = state.usage?.lessonsRemaining;
               final tier = state.usage?.tier;
-              final isPro = tier == 'pro';
+              final isPro = tier == 'pro' || _isPro;
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: isPro
@@ -89,7 +105,7 @@ class _LessonScreenState extends State<LessonScreen> {
                       )
                     : Chip(
                         label: Text(
-                          '${remaining ?? 5} left',
+                          '${remaining ?? AppConstants.freeDailyLimit} left',
                           style: const TextStyle(fontSize: 12),
                         ),
                         backgroundColor: Colors.grey.shade100,
