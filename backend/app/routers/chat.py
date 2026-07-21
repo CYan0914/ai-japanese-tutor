@@ -159,6 +159,16 @@ async def _process_chat(
     # ── 6. Generate TTS if there's a Japanese phrase ──
     audio_url = None
     jp_phrase = result.get("japanese_phrase", "")
+
+    # Fallback: if LLM forgot japanese_phrase, reuse the last one from history
+    if not jp_phrase:
+        for msg in reversed(history):
+            if msg["role"] == "assistant" and "[Japanese:" in msg["content"]:
+                import re
+                match = re.search(r"\[Japanese:\s*([^\]]+)\]", msg["content"])
+                if match:
+                    jp_phrase = match.group(1)
+                    break
     if jp_phrase:
         try:
             tts_bytes = await synthesize_tts(jp_phrase)
