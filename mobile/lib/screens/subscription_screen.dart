@@ -1,6 +1,7 @@
 /// Subscription screen — RevenueCat-powered IAP with 3 pricing tiers.
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/constants.dart';
 import '../services/api_service.dart';
 import '../services/subscription_service.dart';
@@ -160,6 +161,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
     } finally {
       if (mounted) setState(() => _restoring = false);
+    }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -332,6 +340,35 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             'Subscription auto-renews unless cancelled. Manage in Settings.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/terms.html'),
+                child: Text(
+                  'Terms of Use',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              Text('  •  ', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+              GestureDetector(
+                onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/privacy.html'),
+                child: Text(
+                  'Privacy Policy',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
