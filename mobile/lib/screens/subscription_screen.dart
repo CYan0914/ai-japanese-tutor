@@ -239,7 +239,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '10 free lessons/day • Upgrade for unlimited access',
+            '${AppConstants.freeDailyLimit} free lessons/day • Upgrade for unlimited access',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
@@ -251,7 +251,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             period: '/month',
             productId: AppConstants.productMonthly,
             package: monthly,
-            highlight: false,
             badge: null,
           ),
           const SizedBox(height: 12),
@@ -262,7 +261,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             period: '/quarter',
             productId: AppConstants.productQuarterly,
             package: quarterly,
-            highlight: true,
             badge: 'SAVE 33%',
           ),
           const SizedBox(height: 12),
@@ -273,7 +271,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             period: '/year',
             productId: AppConstants.productYearly,
             package: yearly,
-            highlight: false,
             badge: 'SAVE 58%',
           ),
 
@@ -381,7 +378,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String period,
     required String productId,
     required Package? package,
-    required bool highlight,
     String? badge,
   }) {
     // RevenueCat pricing display (more accurate than hardcoded constants)
@@ -403,19 +399,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.green.shade50
-              : highlight
-                  ? Colors.pink.shade50
-                  : Colors.grey.shade50,
+          color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected
-                ? Colors.green.shade400
-                : highlight
-                    ? Colors.pink.shade300
-                    : Colors.grey.shade300,
-            width: isSelected ? 2.5 : (highlight ? 2 : 1),
+            color: isSelected ? Colors.green.shade400 : Colors.grey.shade300,
+            width: isSelected ? 2.5 : 1,
           ),
         ),
         child: Row(
@@ -431,7 +419,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: highlight ? Colors.pink.shade800 : Colors.black87,
+                          color: Colors.black87,
                         ),
                       ),
                       if (badge != null) ...[
@@ -473,7 +461,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: highlight ? Colors.pink.shade800 : Colors.black87,
+                    color: Colors.black87,
                   ),
                 ),
                 Text(

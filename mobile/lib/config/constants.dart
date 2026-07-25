@@ -5,7 +5,7 @@ class AppConstants {
   static const String apiBaseUrl = 'https://sakura-tutor-api.fly.dev/api/v1';
 
   // Free tier daily limit
-  static const int freeDailyLimit = 10;
+  static const int freeDailyLimit = 5;
 
   // ── RevenueCat ──
   /// Replace with your RevenueCat SDK public key (rc_...).
