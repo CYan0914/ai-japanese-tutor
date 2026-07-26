@@ -20,13 +20,17 @@ class RecordButton extends StatefulWidget {
 class _RecordButtonState extends State<RecordButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
+  late final Animation<double> _pulseAnim;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 900),
+    );
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.25).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
   }
 
@@ -58,28 +62,54 @@ class _RecordButtonState extends State<RecordButton>
       child: AnimatedBuilder(
         animation: _animController,
         builder: (_, child) {
-          final scale = widget.isRecording ? 1.0 + _animController.value * 0.15 : 1.0;
-          return Transform.scale(
-            scale: scale,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: widget.isRecording ? Colors.red : Colors.pink.shade400,
-                boxShadow: [
-                  BoxShadow(
-                    color: (widget.isRecording ? Colors.red : Colors.pink).withOpacity(0.3),
-                    blurRadius: 12,
-                    spreadRadius: 2,
+          return SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // ── Expanding outer ring (recording only) ──
+                if (widget.isRecording)
+                  Transform.scale(
+                    scale: 1.0 + _animController.value * 0.35,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red.withOpacity(
+                          0.20 * (1.0 - _animController.value * 0.6),
+                        ),
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              child: Icon(
-                widget.isRecording ? Icons.mic : Icons.mic_none,
-                color: Colors.white,
-                size: 28,
-              ),
+
+                // ── Main button ──
+                Transform.scale(
+                  scale: widget.isRecording ? _pulseAnim.value : 1.0,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.isRecording ? Colors.red : Colors.pink.shade400,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (widget.isRecording ? Colors.red : Colors.pink)
+                              .withOpacity(0.4),
+                          blurRadius: widget.isRecording ? 24 : 12,
+                          spreadRadius: widget.isRecording ? 6 : 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      widget.isRecording ? Icons.stop_rounded : Icons.mic,
+                      color: Colors.white,
+                      size: widget.isRecording ? 26 : 30,
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },

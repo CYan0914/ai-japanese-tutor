@@ -28,6 +28,14 @@ class LessonState extends ChangeNotifier {
 
   /// Record and send audio to the tutor.
   Future<void> startRecording() async {
+    // First request permission — on first launch this shows the system dialog
+    // without recording anything. Only starts recording after permission granted.
+    final hasPerm = await audio.hasPermission();
+    if (!hasPerm) {
+      error = 'Microphone access is needed for voice input. Please allow in Settings.';
+      notifyListeners();
+      return;
+    }
     try {
       isRecording = true;
       notifyListeners();
