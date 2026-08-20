@@ -2,7 +2,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String apiBaseUrl = 'https://sakura-tutor-api.fly.dev/api/v1';
+  static const String apiBaseUrl = 'https://sakura.taomindapp.com/api/v1';
 
   // Free tier daily limit
   static const int freeDailyLimit = 5;
