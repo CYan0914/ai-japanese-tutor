@@ -2,6 +2,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/tokens.dart';
 import '../models/kana.dart';
 import '../services/kana_state.dart';
 
@@ -17,14 +18,14 @@ class _WritingScreenState extends State<WritingScreen> {
   final List<List<Offset>> _strokes = [];
   List<Offset>? _currentStroke;
   final _paint = Paint()
-    ..color = Colors.black87
+    ..color = SakuraColors.sumi
     ..strokeWidth = 6
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round
     ..style = PaintingStyle.stroke;
 
   final _guidePaint = Paint()
-    ..color = Colors.grey.shade300
+    ..color = SakuraColors.bamboo
     ..strokeWidth = 3
     ..style = PaintingStyle.stroke;
 
@@ -76,7 +77,10 @@ class _WritingScreenState extends State<WritingScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Progress saved for ${widget.kana.romaji}! 🎉'),
+        content: Text(
+          'Progress saved for ${widget.kana.romaji}.',
+          style: SakuraType.body(color: Colors.white, size: 14),
+        ),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -88,23 +92,30 @@ class _WritingScreenState extends State<WritingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Write ${widget.kana.character}'),
-        backgroundColor: Colors.pink.shade50,
-        foregroundColor: Colors.pink.shade800,
-        centerTitle: true,
       ),
       body: Column(
         children: [
           // Top hint
           Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.orange.shade50,
+            padding: const EdgeInsets.symmetric(
+              horizontal: SakuraSpace.m, vertical: 10,
+            ),
+            color: SakuraColors.kinari.withOpacity(0.15),
             width: double.infinity,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Icon(
+                  Icons.touch_app_rounded,
+                  size: 16, color: SakuraColors.momiji,
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  '👆 Trace the character: ${widget.kana.romaji}',
-                  style: TextStyle(color: Colors.orange.shade800, fontSize: 15),
+                  'Trace the character: ${widget.kana.romaji}',
+                  style: SakuraType.label(
+                    color: SakuraColors.momiji,
+                    size: 13,
+                  ).copyWith(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -113,17 +124,11 @@ class _WritingScreenState extends State<WritingScreen> {
           // Drawing canvas
           Expanded(
             child: Container(
-              margin: const EdgeInsets.all(24),
+              margin: const EdgeInsets.all(SakuraSpace.l),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
+                color: SakuraColors.white,
+                borderRadius: const BorderRadius.all(SakuraRadius.l),
+                border: Border.all(color: SakuraColors.bamboo),
               ),
               child: GestureDetector(
                 onPanStart: _onPanStart,
@@ -145,35 +150,28 @@ class _WritingScreenState extends State<WritingScreen> {
 
           // Toolbar
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+            padding: const EdgeInsets.all(SakuraSpace.m),
+            decoration: const BoxDecoration(
+              color: SakuraColors.white,
+              border: Border(
+                top: BorderSide(color: SakuraColors.bamboo, width: 1),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _ToolBtn(Icons.undo, 'Undo', _undo),
-                _ToolBtn(Icons.delete_outline, 'Clear', _clear),
+                _ToolBtn(Icons.undo_rounded, 'Undo', _undo),
+                _ToolBtn(Icons.cleaning_services_outlined, 'Clear', _clear),
                 SizedBox(
                   width: 160,
                   height: 48,
                   child: ElevatedButton.icon(
                     onPressed: _markDone,
-                    icon: const Icon(Icons.check),
-                    label: const Text('Done'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink.shade400,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: Text(
+                      'Done',
+                      style: SakuraType.label(size: 14, color: Colors.white)
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -197,12 +195,22 @@ class _ToolBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.grey.shade600),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        ],
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SakuraSpace.s, vertical: 4,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: SakuraColors.mist, size: 22),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: SakuraType.caption(size: 11, color: SakuraColors.mist),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -234,7 +242,7 @@ class _WritingPainter extends CustomPainter {
       maxLines: 1,
     ))
       ..pushStyle(ui.TextStyle(
-        color: Colors.grey.shade300,
+        color: SakuraColors.bamboo,
         fontWeight: FontWeight.bold,
       ))
       ..addText(guideChar);
@@ -248,7 +256,7 @@ class _WritingPainter extends CustomPainter {
 
     // Draw crosshair center lines
     final guideLine = Paint()
-      ..color = Colors.grey.shade200
+      ..color = SakuraColors.bamboo.withOpacity(0.6)
       ..strokeWidth = 0.5;
     canvas.drawLine(
       Offset(size.width / 2 - 60, size.height / 2),

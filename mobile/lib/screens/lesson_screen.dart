@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/constants.dart';
+import '../config/tokens.dart';
 import '../models/chat_message.dart';
 import '../services/lesson_state.dart';
 import '../services/subscription_service.dart';
@@ -68,10 +69,14 @@ class _LessonScreenState extends State<LessonScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sakura Sensei'),
-        centerTitle: true,
-        backgroundColor: Colors.pink.shade50,
-        foregroundColor: Colors.pink.shade800,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('桜', style: TextStyle(color: SakuraColors.sakura, fontSize: 18)),
+            const SizedBox(width: 8),
+            Text('Sakura Sensei', style: SakuraType.title(size: 17)),
+          ],
+        ),
         actions: [
           Consumer<LessonState>(
             builder: (_, state, __) {
@@ -79,38 +84,36 @@ class _LessonScreenState extends State<LessonScreen> {
               final tier = state.usage?.tier;
               final isPro = tier == 'pro' || _isPro;
               return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: isPro
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade600,
-                          borderRadius: BorderRadius.circular(20),
+                padding: const EdgeInsets.only(right: SakuraSpace.m),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isPro ? SakuraColors.matcha : SakuraColors.washiDeep,
+                      borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isPro ? Icons.stars_rounded : Icons.menu_book_rounded,
+                          size: 13,
+                          color: isPro ? SakuraColors.washi : SakuraColors.sumi,
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.stars_rounded, size: 14, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text(
-                              'Unlimited',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 4),
+                        Text(
+                          isPro ? 'Pro' : '${remaining ?? AppConstants.freeDailyLimit}',
+                          style: SakuraType.label(
+                            color: isPro ? SakuraColors.washi : SakuraColors.sumi,
+                            size: 11,
+                          ).copyWith(fontWeight: FontWeight.w700),
                         ),
-                      )
-                    : Chip(
-                        label: Text(
-                          '${remaining ?? AppConstants.freeDailyLimit} left',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        backgroundColor: Colors.grey.shade100,
-                        visualDensity: VisualDensity.compact,
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
           ),
@@ -118,7 +121,6 @@ class _LessonScreenState extends State<LessonScreen> {
       ),
       body: Column(
         children: [
-          // Chat messages
           Expanded(
             child: Consumer<LessonState>(
               builder: (_, state, __) {
@@ -127,10 +129,10 @@ class _LessonScreenState extends State<LessonScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(state.error!),
-                        backgroundColor: Colors.orange,
                         action: SnackBarAction(
                           label: 'OK',
                           onPressed: () => state.clearError(),
+                          textColor: SakuraColors.sakura,
                         ),
                       ),
                     );
@@ -138,13 +140,37 @@ class _LessonScreenState extends State<LessonScreen> {
                 }
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(SakuraSpace.l),
                   itemCount: state.messages.length + (state.isLoading ? 1 : 0),
                   itemBuilder: (_, i) {
                     if (i == state.messages.length && state.isLoading) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(child: CircularProgressIndicator()),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: SakuraSpace.l),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24, height: 24,
+                              decoration: BoxDecoration(
+                                color: SakuraColors.sakuraSoft,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 12, height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: SakuraColors.sakura,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: SakuraSpace.s),
+                            Text(
+                              'Sakura is thinking...',
+                              style: SakuraType.caption(),
+                            ),
+                          ],
+                        ),
                       );
                     }
                     final msg = state.messages[i];
@@ -154,46 +180,61 @@ class _LessonScreenState extends State<LessonScreen> {
               },
             ),
           ),
-
           // Input area
           Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+            decoration: const BoxDecoration(
+              color: SakuraColors.white,
+              border: Border(
+                top: BorderSide(color: SakuraColors.bamboo, width: 1),
+              ),
             ),
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 8,
-              bottom: MediaQuery.of(context).padding.bottom + 8,
+            padding: EdgeInsets.fromLTRB(
+              SakuraSpace.m, SakuraSpace.s, SakuraSpace.m,
+              MediaQuery.of(context).padding.bottom + SakuraSpace.s,
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Mode toggle
-                IconButton(
-                  icon: Icon(
-                    _isTextMode ? Icons.mic : Icons.keyboard,
-                    color: Colors.pink.shade300,
+                InkWell(
+                  onTap: () => setState(() => _isTextMode = !_isTextMode),
+                  borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                  child: Container(
+                    width: 42, height: 42,
+                    decoration: BoxDecoration(
+                      color: _isTextMode ? SakuraColors.washiDeep : SakuraColors.sakura,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isTextMode ? Icons.mic_none_rounded : Icons.keyboard_alt_outlined,
+                      color: _isTextMode ? SakuraColors.sumi : SakuraColors.washi,
+                      size: 20,
+                    ),
                   ),
-                  onPressed: () => setState(() => _isTextMode = !_isTextMode),
-                  tooltip: _isTextMode ? 'Switch to voice' : 'Switch to text',
                 ),
-
-                // Text input or record button
+                const SizedBox(width: SakuraSpace.s),
                 Expanded(
                   child: _isTextMode ? _buildTextField() : _buildRecordButton(),
                 ),
-
                 if (_isTextMode)
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Colors.pink),
-                    onPressed: _sendText,
+                  Padding(
+                    padding: const EdgeInsets.only(left: SakuraSpace.s),
+                    child: InkWell(
+                      onTap: _sendText,
+                      borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                      child: Container(
+                        width: 42, height: 42,
+                        decoration: const BoxDecoration(
+                          color: SakuraColors.sumi,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_upward_rounded,
+                          color: SakuraColors.washi,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -206,14 +247,14 @@ class _LessonScreenState extends State<LessonScreen> {
   Widget _buildTextField() {
     return TextField(
       controller: _textController,
+      style: SakuraType.body(size: 15),
       decoration: const InputDecoration(
-        hintText: 'Ask Sakura a question...',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        hintText: 'Ask Sakura anything...',
       ),
       textInputAction: TextInputAction.send,
       onSubmitted: (_) => _sendText(),
-      maxLines: 1,
+      maxLines: 4,
+      minLines: 1,
     );
   }
 
@@ -273,19 +314,16 @@ class _LessonScreenState extends State<LessonScreen> {
           ...msg.corrections.map((c) => CorrectionTile(correction: c)),
         if (msg.encouragement != null)
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 8),
+            padding: const EdgeInsets.only(left: 4, bottom: SakuraSpace.s, top: 2),
             child: Row(
               children: [
-                const Text('🌟', style: TextStyle(fontSize: 14)),
+                const Text('✦', style: TextStyle(color: SakuraColors.sakura, fontSize: 12)),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     msg.encouragement!,
-                    style: TextStyle(
-                      color: Colors.orange.shade700,
-                      fontStyle: FontStyle.italic,
-                      fontSize: 13,
-                    ),
+                    style: SakuraType.caption(color: SakuraColors.sumi, size: 12)
+                        .copyWith(fontStyle: FontStyle.italic),
                   ),
                 ),
               ],

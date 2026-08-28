@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
+import '../config/tokens.dart';
 import '../models/kana.dart';
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
@@ -54,186 +55,218 @@ class _KanaDetailScreenState extends State<KanaDetailScreen> {
     }
   }
 
+  Color get _levelColor {
+    switch (widget.level) {
+      case MasteryLevel.unseen: return SakuraColors.stone;
+      case MasteryLevel.learning: return SakuraColors.momiji;
+      case MasteryLevel.familiar: return SakuraColors.kinari;
+      case MasteryLevel.mastered: return SakuraColors.matcha;
+    }
+  }
+
+  String _levelLabel() {
+    switch (widget.level) {
+      case MasteryLevel.unseen: return 'New';
+      case MasteryLevel.learning: return 'Learning';
+      case MasteryLevel.familiar: return 'Familiar';
+      case MasteryLevel.mastered: return 'Mastered';
+    }
+  }
+
+  IconData _levelIcon() {
+    switch (widget.level) {
+      case MasteryLevel.unseen: return Icons.circle_outlined;
+      case MasteryLevel.learning: return Icons.school_outlined;
+      case MasteryLevel.familiar: return Icons.star_half_rounded;
+      case MasteryLevel.mastered: return Icons.star_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final kana = widget.kana;
     final level = widget.level;
+    final levelColor = _levelColor;
     return Scaffold(
       appBar: AppBar(
-        title: Text(kana.character),
-        backgroundColor: Colors.pink.shade50,
-        foregroundColor: Colors.pink.shade800,
-        centerTitle: true,
+        title: Text(kana.character, style: SakuraType.kana(size: 22)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Large kana display with speaker icon overlay
-            Stack(
-              alignment: Alignment.center,
+      body: Stack(
+        children: [
+          // Kanji watermark — the kana character itself, oversized
+          Positioned(
+            right: -40,
+            top: 40,
+            child: IgnorePointer(
+              child: Text(
+                kana.character,
+                style: TextStyle(
+                  fontSize: 320,
+                  fontWeight: FontWeight.w300,
+                  color: SakuraColors.bamboo.withOpacity(0.45),
+                  height: 1,
+                  fontFamily: 'ShipporiMincho', // Japanese serif fallback
+                ),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SakuraSpace.l, SakuraSpace.l, SakuraSpace.l, SakuraSpace.l,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Large kana display card
                 Container(
-                  width: 180,
-                  height: 180,
+                  width: 200,
+                  height: 200,
                   decoration: BoxDecoration(
-                    color: _levelColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: SakuraColors.white,
+                    borderRadius: const BorderRadius.all(SakuraRadius.l),
                     border: Border.all(
-                      color: _levelColor.withOpacity(0.3),
-                      width: 2,
+                      color: levelColor.withOpacity(0.35),
+                      width: 1.5,
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      kana.character,
-                      style: const TextStyle(
-                        fontSize: 88,
-                        fontWeight: FontWeight.bold,
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Text(
+                          kana.character,
+                          style: SakuraType.kana(
+                            color: SakuraColors.sumi,
+                            size: 88,
+                          ),
+                        ),
                       ),
+                      Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: Material(
+                          color: levelColor.withOpacity(0.12),
+                          borderRadius: const BorderRadius.all(SakuraRadius.m),
+                          child: InkWell(
+                            borderRadius: const BorderRadius.all(SakuraRadius.m),
+                            onTap: _isPlaying ? null : _playPronunciation,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              alignment: Alignment.center,
+                              child: _isPlaying
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: levelColor,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.volume_up_rounded,
+                                      color: levelColor,
+                                      size: 22,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: SakuraSpace.l),
+
+                // Romaji (display style)
+                Text(
+                  kana.romaji,
+                  style: SakuraType.display(size: 32, color: SakuraColors.mist),
+                ),
+                const SizedBox(height: SakuraSpace.s),
+
+                // Status chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SakuraSpace.m, vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: levelColor.withOpacity(0.1),
+                    borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                    border: Border.all(color: levelColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_levelIcon(), size: 16, color: levelColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        _levelLabel(),
+                        style: SakuraType.label(color: levelColor, size: 13)
+                            .copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: SakuraSpace.xl),
+
+                // Practice writing button (primary CTA)
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => WritingScreen(kana: kana),
+                      ));
+                    },
+                    icon: const Icon(Icons.draw_rounded, size: 18),
+                    label: Text(
+                      'Practice writing',
+                      style: SakuraType.label(size: 15, color: Colors.white)
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-                // Speaker icon button at bottom-right of the kana card
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Material(
-                    color: Colors.pink.shade100.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: _isPlaying ? null : _playPronunciation,
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        child: _isPlaying
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.pink.shade800,
-                                ),
-                              )
-                            : Icon(
-                                Icons.volume_up,
-                                color: Colors.pink.shade800,
-                                size: 24,
-                              ),
+                const SizedBox(height: SakuraSpace.s),
+
+                // Mark as known toggle (secondary)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      final state = context.read<KanaState>();
+                      if (level == MasteryLevel.mastered) {
+                        state.mark(kana.romaji, MasteryLevel.familiar);
+                      } else {
+                        state.mark(kana.romaji, MasteryLevel.mastered);
+                      }
+                      Navigator.of(context).pop();
+                    },
+                    icon: Icon(
+                      level == MasteryLevel.mastered
+                          ? Icons.undo_rounded
+                          : Icons.check_circle_outline_rounded,
+                      size: 18,
+                    ),
+                    label: Text(
+                      level == MasteryLevel.mastered
+                          ? 'Mark as not mastered'
+                          : 'I know this kana',
+                      style: SakuraType.label(
+                        size: 14,
+                        color: level == MasteryLevel.mastered
+                            ? SakuraColors.mist
+                            : SakuraColors.matcha,
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Romaji
-            Text(
-              kana.romaji,
-              style: TextStyle(
-                fontSize: 32,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Status chip
-            _buildStatusChip(),
-            const SizedBox(height: 32),
-
-            // Practice writing button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => WritingScreen(kana: kana),
-                  ));
-                },
-                icon: const Icon(Icons.draw),
-                label: const Text('Practice Writing'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.pink.shade400,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Mark as known button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  final state = context.read<KanaState>();
-                  if (level == MasteryLevel.mastered) {
-                    state.mark(kana.romaji, MasteryLevel.familiar);
-                  } else {
-                    state.mark(kana.romaji, MasteryLevel.mastered);
-                  }
-                  Navigator.of(context).pop();
-                },
-                icon: Icon(level == MasteryLevel.mastered
-                    ? Icons.undo : Icons.check_circle),
-                label: Text(level == MasteryLevel.mastered
-                    ? 'Mark as Not Mastered' : 'I Know This Kana'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: level == MasteryLevel.mastered
-                      ? Colors.grey : Colors.green,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildStatusChip() {
-    String label;
-    IconData icon;
-    Color color;
-    switch (widget.level) {
-      case MasteryLevel.unseen:
-        label = 'New';
-        icon = Icons.circle_outlined;
-        color = Colors.grey;
-      case MasteryLevel.learning:
-        label = 'Learning';
-        icon = Icons.school;
-        color = Colors.orange;
-      case MasteryLevel.familiar:
-        label = 'Familiar';
-        icon = Icons.star_half;
-        color = Colors.amber;
-      case MasteryLevel.mastered:
-        label = 'Mastered';
-        icon = Icons.star;
-        color = Colors.green;
-    }
-    return Chip(
-      avatar: Icon(icon, size: 18, color: color),
-      label: Text(label),
-      backgroundColor: color.withOpacity(0.1),
-    );
-  }
-
-  Color get _levelColor {
-    switch (widget.level) {
-      case MasteryLevel.unseen: return Colors.grey;
-      case MasteryLevel.learning: return Colors.orange;
-      case MasteryLevel.familiar: return Colors.amber;
-      case MasteryLevel.mastered: return Colors.green;
-    }
   }
 }

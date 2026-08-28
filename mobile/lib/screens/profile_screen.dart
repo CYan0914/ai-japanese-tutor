@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/constants.dart';
+import '../config/tokens.dart';
 import '../services/lesson_state.dart';
 import '../services/api_service.dart';
 import '../services/subscription_service.dart';
@@ -37,25 +38,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final state = context.watch<LessonState>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          // JLPT Level
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'JLPT Level',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Kanji watermark — 己 (self / oneself)
+            Positioned(
+              right: -40,
+              bottom: -20,
+              child: IgnorePointer(
+                child: Text(
+                  '己',
+                  style: TextStyle(
+                    fontSize: 320,
+                    fontWeight: FontWeight.w300,
+                    color: SakuraColors.bamboo.withOpacity(0.35),
+                    height: 1,
                   ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
+                ),
+              ),
+            ),
+
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                SakuraSpace.l, SakuraSpace.l, SakuraSpace.l, SakuraSpace.xxxl,
+              ),
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.only(bottom: SakuraSpace.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('自分', style: SakuraType.japanese(
+                        color: SakuraColors.sakura, size: 14,
+                      )),
+                      const SizedBox(height: 4),
+                      Text('Profile', style: SakuraType.display(size: 32)),
+                    ],
+                  ),
+                ),
+
+                // JLPT Level
+                _SectionCard(
+                  title: 'JLPT Level',
+                  subtitle: 'Choose your study level',
+                  child: DropdownButtonFormField<String>(
                     value: state.currentLevel,
                     items: ['N5', 'N4', 'N3', 'N2', 'N1']
                         .map((l) => DropdownMenuItem(value: l, child: Text(l)))
@@ -65,98 +92,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         state.setLevel(v);
                       }
                     },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+                ),
+                const SizedBox(height: SakuraSpace.m),
 
-          // Subscription
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Subscription',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        _isPro ? Icons.star : Icons.star_border,
-                        color: Colors.amber,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _checkingStatus
-                            ? 'Checking...'
-                            : _isPro
-                                ? 'Pro  Unlimited lessons'
-                                : 'Free  ${AppConstants.freeDailyLimit} lessons/day',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  if (!_isPro) ...[
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pushNamed('/subscribe'),
-                      child: const Text('Upgrade to Pro'),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'From \$${AppConstants.priceMonthly.toStringAsFixed(0)}/mo · '
-                      '\$${AppConstants.priceQuarterly.toStringAsFixed(0)}/quarter · '
-                      '\$${AppConstants.priceYearly.toStringAsFixed(0)}/year',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
+                // Subscription
+                _SectionCard(
+                  title: 'Subscription',
+                  subtitle: _checkingStatus
+                      ? 'Checking...'
+                      : _isPro
+                          ? 'Pro · Unlimited lessons'
+                          : 'Free · ${AppConstants.freeDailyLimit} lessons / day',
+                  trailing: _isPro
+                      ? Icon(Icons.star_rounded, color: SakuraColors.kinari, size: 22)
+                      : Icon(Icons.star_outline_rounded, color: SakuraColors.stone, size: 22),
+                  child: !_isPro
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: SakuraSpace.s),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pushNamed('/subscribe'),
+                                child: Text(
+                                  'Upgrade to Pro',
+                                  style: SakuraType.label(size: 14, color: Colors.white)
+                                      .copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: SakuraSpace.s),
+                            Text(
+                              'From \$${AppConstants.priceMonthly.toStringAsFixed(0)} / mo · '
+                              '\$${AppConstants.priceQuarterly.toStringAsFixed(0)} / quarter · '
+                              '\$${AppConstants.priceYearly.toStringAsFixed(0)} / year',
+                              style: SakuraType.caption(size: 11),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                const SizedBox(height: SakuraSpace.m),
 
-          // About
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'About',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
+                // About
+                _SectionCard(
+                  title: 'About',
+                  child: Text(
                     'Sakura AI Tutor helps you learn Japanese pronunciation '
                     'through natural conversation with an AI teacher.',
-                    style: TextStyle(color: Colors.grey),
+                    style: SakuraType.body(color: SakuraColors.mist, size: 14),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
+                ),
+                const SizedBox(height: SakuraSpace.xl),
 
-          // Sign out
-          TextButton(
-            onPressed: () async {
-              await ApiService.clearToken();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
-              }
-            },
-            child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                // Sign out
+                Center(
+                  child: TextButton(
+                    onPressed: () async {
+                      await ApiService.clearToken();
+                      if (context.mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                      }
+                    },
+                    child: Text(
+                      'Sign Out',
+                      style: SakuraType.label(
+                        color: SakuraColors.sakura,
+                        size: 14,
+                      ).copyWith(
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: SakuraSpace.l),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bordered section card — consistent profile layout.
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final Widget? child;
+
+  const _SectionCard({
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(SakuraSpace.m),
+      decoration: BoxDecoration(
+        color: SakuraColors.white,
+        borderRadius: const BorderRadius.all(SakuraRadius.m),
+        border: Border.all(color: SakuraColors.bamboo),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(title, style: SakuraType.title(size: 15)),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(subtitle!, style: SakuraType.caption(size: 12)),
+          ],
+          if (child != null) child!,
         ],
       ),
     );

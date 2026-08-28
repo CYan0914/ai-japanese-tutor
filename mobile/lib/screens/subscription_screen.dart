@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/constants.dart';
+import '../config/tokens.dart';
 import '../services/api_service.dart';
 import '../services/subscription_service.dart';
 
@@ -96,17 +97,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
       if (isPro) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(' Welcome to Sakura Pro! Enjoy unlimited lessons.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(
+              'Welcome to Sakura Pro. Enjoy unlimited lessons.',
+              style: SakuraType.body(color: Colors.white, size: 14),
+            ),
           ),
         );
         Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Purchase completed but Pro could not be verified. Please contact support.'),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text(
+              'Purchase completed but Pro could not be verified. Please contact support.',
+              style: SakuraType.body(color: Colors.white, size: 14),
+            ),
+            backgroundColor: SakuraColors.momiji,
           ),
         );
       }
@@ -141,16 +147,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
       if (isPro) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(' Purchases restored! Welcome back to Pro.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(
+              'Purchases restored. Welcome back to Pro.',
+              style: SakuraType.body(color: Colors.white, size: 14),
+            ),
           ),
         );
         Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No previous purchases found.'),
+          SnackBar(
+            content: Text(
+              'No previous purchases found.',
+              style: SakuraType.body(color: Colors.white, size: 14),
+            ),
           ),
         );
       }
@@ -175,10 +186,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upgrade to Pro'),
+        title: const Text('Sakura Pro'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: SakuraColors.sakura,
+                strokeWidth: 2,
+              ),
+            )
           : _error != null && _packages.isEmpty
               ? _buildError()
               : _buildContent(),
@@ -188,27 +204,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(SakuraSpace.l),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline_rounded, size: 48, color: SakuraColors.stone),
+            const SizedBox(height: SakuraSpace.m),
             Text(
               'Unable to load subscription options.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: SakuraType.body(color: SakuraColors.mist),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: SakuraSpace.m),
             ElevatedButton(
               onPressed: _loadOfferings,
               child: const Text('Retry'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: SakuraSpace.s),
             Text(
               'Make sure RevenueCat is configured in App Store Connect.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: SakuraType.caption(size: 11),
             ),
           ],
         ),
@@ -222,153 +238,185 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final quarterly = _packageByType(PackageType.threeMonth);
     final yearly = _packageByType(PackageType.annual);
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          const Text('🌸', style: TextStyle(fontSize: 40)),
-          const SizedBox(height: 8),
-          Text(
-            'Unlock Unlimited Learning',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.pink.shade800,
+    return Stack(
+      children: [
+        // Watermark — 桜
+        Positioned(
+          right: -60,
+          top: 40,
+          child: IgnorePointer(
+            child: Text(
+              '桜',
+              style: TextStyle(
+                fontSize: 360,
+                fontWeight: FontWeight.w300,
+                color: SakuraColors.sakura.withOpacity(0.05),
+                height: 1,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${AppConstants.freeDailyLimit} free lessons/day • Upgrade for unlimited access',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+
+        ListView(
+          padding: const EdgeInsets.fromLTRB(
+            SakuraSpace.l, SakuraSpace.l, SakuraSpace.l, SakuraSpace.xl,
           ),
-          const SizedBox(height: 24),
-
-          // ── 3 pricing tiers ──
-          _buildTierCard(
-            label: 'Monthly',
-            price: '\$${AppConstants.priceMonthly.toStringAsFixed(2)}',
-            period: '/month',
-            productId: AppConstants.productMonthly,
-            package: monthly,
-            badge: null,
-          ),
-          const SizedBox(height: 12),
-
-          _buildTierCard(
-            label: 'Quarterly',
-            price: '\$${AppConstants.priceQuarterly.toStringAsFixed(2)}',
-            period: '/quarter',
-            productId: AppConstants.productQuarterly,
-            package: quarterly,
-            badge: 'SAVE 33%',
-          ),
-          const SizedBox(height: 12),
-
-          _buildTierCard(
-            label: 'Yearly',
-            price: '\$${AppConstants.priceYearly.toStringAsFixed(2)}',
-            period: '/year',
-            productId: AppConstants.productYearly,
-            package: yearly,
-            badge: 'SAVE 58%',
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Purchase button ──
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: (_purchasing || _packages.isEmpty)
-                  ? null
-                  : () {
-                      // Default to yearly (best value) if selected; else first available
-                      final target = yearly ?? _packages.first;
-                      _purchase(target);
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink.shade400,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          children: [
+            // Header
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('桜', style: SakuraType.japanese(
+                  color: SakuraColors.sakura, size: 16,
+                )),
+                const SizedBox(height: 4),
+                Text('Sakura Pro', style: SakuraType.display(size: 32)),
+                const SizedBox(height: SakuraSpace.s),
+                Text(
+                  '${AppConstants.freeDailyLimit} free lessons a day. '
+                  'Pro removes the limit.',
+                  style: SakuraType.body(color: SakuraColors.mist, size: 14),
                 ),
-              ),
-              child: _purchasing
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+              ],
+            ),
+            const SizedBox(height: SakuraSpace.xl),
+
+            // ── 3 pricing tiers ──
+            _buildTierCard(
+              label: 'Monthly',
+              price: '\$${AppConstants.priceMonthly.toStringAsFixed(2)}',
+              period: '/ month',
+              productId: AppConstants.productMonthly,
+              package: monthly,
+              badge: null,
+            ),
+            const SizedBox(height: SakuraSpace.s),
+
+            _buildTierCard(
+              label: 'Quarterly',
+              price: '\$${AppConstants.priceQuarterly.toStringAsFixed(2)}',
+              period: '/ quarter',
+              productId: AppConstants.productQuarterly,
+              package: quarterly,
+              badge: 'SAVE 33%',
+            ),
+            const SizedBox(height: SakuraSpace.s),
+
+            _buildTierCard(
+              label: 'Yearly',
+              price: '\$${AppConstants.priceYearly.toStringAsFixed(2)}',
+              period: '/ year',
+              productId: AppConstants.productYearly,
+              package: yearly,
+              badge: 'SAVE 58%',
+              highlight: true,
+            ),
+
+            const SizedBox(height: SakuraSpace.l),
+
+            // ── Purchase button (dark CTA) ──
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: (_purchasing || _packages.isEmpty)
+                    ? null
+                    : () {
+                        // Default to yearly (best value) if available; else first
+                        final target = yearly ?? _packages.first;
+                        _purchase(target);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SakuraColors.sumi,
+                  foregroundColor: SakuraColors.washi,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(SakuraRadius.m),
+                  ),
+                ),
+                child: _purchasing
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: SakuraColors.washi,
+                        ),
+                      )
+                    : Text(
+                        'Subscribe to Pro',
+                        style: SakuraType.label(size: 15, color: SakuraColors.washi)
+                            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.3),
                       ),
-                    )
-                  : const Text(
-                      'Subscribe Now',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                    ),
+              ),
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: SakuraSpace.m),
 
-          // ── Restore link ──
-          TextButton(
-            onPressed: _restoring ? null : _restore,
-            child: _restoring
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    'Restore Purchases',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-          ),
+            // ── Restore link ──
+            Center(
+              child: TextButton(
+                onPressed: _restoring ? null : _restore,
+                child: _restoring
+                    ? const SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5, color: SakuraColors.sakura,
+                        ),
+                      )
+                    : Text(
+                        'Restore purchases',
+                        style: SakuraType.label(
+                          color: SakuraColors.sakura,
+                          size: 13,
+                        ).copyWith(
+                          decoration: TextDecoration.underline,
+                          decorationColor: SakuraColors.sakura,
+                        ),
+                      ),
+              ),
+            ),
 
-          const SizedBox(height: 4),
-          Text(
-            'Subscription auto-renews unless cancelled. Manage in Settings.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/terms.html'),
-                child: Text(
-                  'Terms of Use',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade600,
-                    decoration: TextDecoration.underline,
+            const SizedBox(height: SakuraSpace.l),
+
+            // Fine print
+            Text(
+              'Subscription auto-renews unless cancelled. Manage in Settings.',
+              textAlign: TextAlign.center,
+              style: SakuraType.caption(size: 11),
+            ),
+            const SizedBox(height: SakuraSpace.s),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/terms.html'),
+                  child: Text(
+                    'Terms of Use',
+                    style: SakuraType.caption(size: 12, color: SakuraColors.mist)
+                        .copyWith(
+                          decoration: TextDecoration.underline,
+                          decorationColor: SakuraColors.mist,
+                        ),
                   ),
                 ),
-              ),
-              Text('  •  ', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
-              GestureDetector(
-                onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/privacy.html'),
-                child: Text(
-                  'Privacy Policy',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade600,
-                    decoration: TextDecoration.underline,
+                Text('   ·   ', style: SakuraType.caption(size: 12, color: SakuraColors.stone)),
+                GestureDetector(
+                  onTap: () => _openUrl('https://cyan0914.github.io/ai-japanese-tutor/privacy.html'),
+                  child: Text(
+                    'Privacy Policy',
+                    style: SakuraType.caption(size: 12, color: SakuraColors.mist)
+                        .copyWith(
+                          decoration: TextDecoration.underline,
+                          decorationColor: SakuraColors.mist,
+                        ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
+            const SizedBox(height: SakuraSpace.l),
+          ],
+        ),
+      ],
     );
   }
 
@@ -379,6 +427,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String productId,
     required Package? package,
     String? badge,
+    bool highlight = false,
   }) {
     // RevenueCat pricing display (more accurate than hardcoded constants)
     String displayPrice = price;
@@ -395,15 +444,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               setState(() => _selectedPackage = package);
               _purchase(package);
             },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: SakuraSpace.m, vertical: SakuraSpace.m,
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected
+              ? SakuraColors.sakuraSoft
+              : (highlight ? SakuraColors.white : SakuraColors.washiDeep),
+          borderRadius: const BorderRadius.all(SakuraRadius.m),
           border: Border.all(
-            color: isSelected ? Colors.green.shade400 : Colors.grey.shade300,
-            width: isSelected ? 2.5 : 1,
+            color: isSelected
+                ? SakuraColors.sakura
+                : (highlight ? SakuraColors.sakura.withOpacity(0.4) : SakuraColors.bamboo),
+            width: isSelected ? 2 : (highlight ? 1.5 : 1),
           ),
         ),
         child: Row(
@@ -416,29 +472,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     children: [
                       Text(
                         label,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                        style: SakuraType.title(size: 15),
                       ),
                       if (badge != null) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: SakuraSpace.s),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: 6, vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.amber.shade300,
-                            borderRadius: BorderRadius.circular(4),
+                            color: SakuraColors.kinari.withOpacity(0.25),
+                            borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                            border: Border.all(
+                              color: SakuraColors.kinari.withOpacity(0.6),
+                            ),
                           ),
                           child: Text(
                             badge,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.brown.shade800,
+                            style: SakuraType.caption(
+                              color: SakuraColors.momiji,
+                              size: 10,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),
@@ -446,9 +502,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ],
                   ),
                   if (package == null)
-                    Text(
-                      'Not available',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Not available',
+                        style: SakuraType.caption(size: 11, color: SakuraColors.stone),
+                      ),
                     ),
                 ],
               ),
@@ -458,15 +517,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text(
                   displayPrice,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  style: SakuraType.display(size: 20, color: SakuraColors.sumi),
                 ),
                 Text(
                   period,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: SakuraType.caption(size: 11, color: SakuraColors.mist),
                 ),
               ],
             ),

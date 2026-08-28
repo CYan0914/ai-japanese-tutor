@@ -1,5 +1,6 @@
-/// Pronunciation score card — colored score display.
+/// Pronunciation score card — refined with sakura palette.
 import 'package:flutter/material.dart';
+import '../config/tokens.dart';
 import '../models/tutor_response.dart';
 
 class PronunciationCard extends StatelessWidget {
@@ -9,66 +10,58 @@ class PronunciationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = score.overall >= 85
-        ? Colors.green
-        : score.overall >= 70
-            ? Colors.lightGreen
-            : score.overall >= 50
-                ? Colors.orange
-                : Colors.red;
+    final color = _colorFor(score.overall);
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16, bottom: 12),
+      padding: const EdgeInsets.only(left: 4, bottom: SakuraSpace.s, top: 4),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(SakuraSpace.m),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: color.withOpacity(0.06),
+          borderRadius: const BorderRadius.all(SakuraRadius.s),
+          border: Border.all(color: color.withOpacity(0.25)),
         ),
         child: Row(
           children: [
-            // Score circle
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withOpacity(0.15),
-              ),
-              child: Center(
-                child: Text(
-                  '${score.overall}',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+            // Score ring
+            SizedBox(
+              width: 56, height: 56,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 56, height: 56,
+                    child: CircularProgressIndicator(
+                      value: score.overall / 100,
+                      strokeWidth: 3,
+                      backgroundColor: color.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
                   ),
-                ),
+                  Text(
+                    '${score.overall}',
+                    style: SakuraType.label(color: color, size: 16).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: SakuraSpace.m),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _gradeLabel(score.overall),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                      fontSize: 15,
-                    ),
+                    style: SakuraType.title(color: color, size: 15),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     score.feedback.isNotEmpty
                         ? score.feedback
                         : _defaultFeedback(score.overall),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                    ),
+                    style: SakuraType.caption(),
                   ),
                 ],
               ),
@@ -79,17 +72,24 @@ class PronunciationCard extends StatelessWidget {
     );
   }
 
+  Color _colorFor(int s) {
+    if (s >= 85) return SakuraColors.matcha;
+    if (s >= 70) return SakuraColors.kinari;
+    if (s >= 50) return SakuraColors.momiji;
+    return SakuraColors.sakura;
+  }
+
   String _gradeLabel(int s) {
-    if (s >= 85) return 'Excellent!';
-    if (s >= 70) return 'Good!';
+    if (s >= 85) return 'Excellent';
+    if (s >= 70) return 'Good';
     if (s >= 50) return 'Fair';
-    return 'Needs Work';
+    return 'Needs work';
   }
 
   String _defaultFeedback(int s) {
-    if (s >= 85) return 'Keep up the great work!';
+    if (s >= 85) return 'Keep up the great work.';
     if (s >= 70) return 'A few small improvements needed.';
     if (s >= 50) return 'Focus on the highlighted sounds.';
-    return 'Practice makes perfect — keep trying!';
+    return 'Practice makes perfect — keep trying.';
   }
 }

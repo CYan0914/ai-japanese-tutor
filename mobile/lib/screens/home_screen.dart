@@ -1,11 +1,13 @@
-/// Home screen — dashboard with start lesson button + phoneme profile.
+/// Home screen — daily greeting + phoneme snapshot + start lesson.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/tokens.dart';
 import '../services/lesson_state.dart';
 import '../services/api_service.dart';
 import '../services/subscription_service.dart';
 import '../models/tutor_response.dart';
-import '../config/constants.dart';
+import 'profile_screen.dart';
+import 'subscription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,317 +39,406 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _loadingProfile = true);
     try {
       _phonemeProfile = await ApiService.getPhonemeProfile();
-    } catch (_) {
-      // Profile not available yet — show empty state
-    }
+    } catch (_) {}
     if (mounted) setState(() => _loadingProfile = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sakura'),
-        centerTitle: true,
-        backgroundColor: Colors.pink.shade50,
-        foregroundColor: Colors.pink.shade800,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () => Navigator.of(context).pushNamed('/profile'),
+      body: Stack(
+        children: [
+          // Signature kanji watermark — 平 (hei, "calm/peace")
+          Positioned(
+            top: -40,
+            right: -60,
+            child: Text(
+              '平',
+              style: SakuraType.display(
+                color: SakuraColors.sakuraSoft.withOpacity(0.5),
+                size: 320,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      SakuraSpace.l, SakuraSpace.s, SakuraSpace.l, 0,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Sakura',
+                          style: SakuraType.title(size: 18),
+                        ),
+                        const Spacer(),
+                        _CircleIcon(
+                          icon: Icons.person_outline,
+                          onTap: () => Navigator.of(context)
+                              .push(MaterialPageRoute(
+                                builder: (_) => const ProfileScreen(),
+                              )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SakuraSpace.l,
+                    vertical: SakuraSpace.l,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Greeting
+                      Text(
+                        '今日(きょう)は',
+                        style: SakuraType.japanese(color: SakuraColors.sakura, size: 14),
+                      ),
+                      const SizedBox(height: SakuraSpace.s),
+                      Text(
+                        'Good day,',
+                        style: SakuraType.caption(),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Sensei.',
+                        style: SakuraType.display(size: 32),
+                      ),
+                      const SizedBox(height: SakuraSpace.l),
+
+                      // Status row — level + tier
+                      _StatusRow(isPro: _isPro),
+                      const SizedBox(height: SakuraSpace.l),
+
+                      // Pronunciation card
+                      _buildPhonemeCard(),
+                      const SizedBox(height: SakuraSpace.l),
+
+                      // Primary CTA
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pushNamed('/lesson'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: SakuraColors.sumi,
+                            foregroundColor: SakuraColors.washi,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.all(SakuraRadius.m),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Start lesson',
+                                style: SakuraType.label(color: SakuraColors.washi, size: 16).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(width: SakuraSpace.s),
+                              const Icon(Icons.arrow_forward_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: SakuraSpace.s),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => const SubscriptionScreen(),
+                          )),
+                          child: Text(
+                            'Upgrade to Pro  →',
+                            style: SakuraType.label(color: SakuraColors.sakura, size: 13),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: SakuraSpace.xl),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              // Avatar
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.pink.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('🌸', style: TextStyle(fontSize: 38)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Welcome to Sakura!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink.shade800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Your AI Japanese pronunciation teacher',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-              ),
-              const SizedBox(height: 20),
-
-              // Level + Usage row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Consumer<LessonState>(
-                    builder: (_, state, __) => Chip(
-                      avatar: const Icon(Icons.school, size: 16),
-                      label: Text('Level: ${state.currentLevel}'),
-                      backgroundColor: Colors.purple.shade50,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Consumer<LessonState>(
-                    builder: (_, state, __) {
-                      final tier = state.usage?.tier ?? (_isPro ? 'pro' : 'free');
-                      final remaining =
-                          state.usage?.lessonsRemaining ?? (_isPro ? 999 : AppConstants.freeDailyLimit);
-                      return tier == 'pro'
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade600,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.stars_rounded, size: 16, color: Colors.white),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Unlimited',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Chip(
-                              avatar: Icon(Icons.menu_book, size: 16),
-                              label: Text('$remaining left'),
-                              backgroundColor: Colors.grey.shade100,
-                            );
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // ── Pronunciation Profile Card ──
-              _buildPhonemeCard(),
-              const SizedBox(height: 16),
-
-              // Start button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pushNamed('/lesson'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pink.shade400,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: const Text(
-                    'Start Lesson',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.of(context).pushNamed('/subscribe'),
-                child: const Text('Upgrade to Pro →', style: TextStyle(fontSize: 13)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
   Widget _buildPhonemeCard() {
-    // Not loaded yet
     if (_loadingProfile) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              SizedBox(
-                width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+      return Container(
+        padding: const EdgeInsets.all(SakuraSpace.l),
+        decoration: BoxDecoration(
+          color: SakuraColors.white,
+          borderRadius: const BorderRadius.all(SakuraRadius.m),
+          border: Border.all(color: SakuraColors.bamboo),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 16, height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5, color: SakuraColors.sakura,
               ),
-              SizedBox(width: 10),
-              Text('Loading your pronunciation profile...'),
-            ],
-          ),
+            ),
+            const SizedBox(width: SakuraSpace.m),
+            Text('Reading your pronunciation...', style: SakuraType.body(color: SakuraColors.mist, size: 14)),
+          ],
         ),
       );
     }
 
     final profile = _phonemeProfile;
 
-    // No data yet — first-time user
     if (profile == null || profile.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(Icons.mic, size: 32, color: Colors.grey.shade400),
-              const SizedBox(height: 8),
-              Text(
-                'No pronunciation data yet',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Record your voice in a lesson to start building your pronunciation profile!',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
+      return _emptyCard();
     }
 
-    // Has data — show the profile
-    final weakest3 = profile.phonemes.where((p) => profile.weakest.contains(p.phoneme)).toList();
+    final weakest3 = profile.phonemes
+        .where((p) => profile.weakest.contains(p.phoneme))
+        .toList();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: SakuraColors.white,
+        borderRadius: const BorderRadius.all(SakuraRadius.m),
+        border: Border.all(color: SakuraColors.bamboo),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SakuraSpace.l, SakuraSpace.l, SakuraSpace.l, SakuraSpace.s,
+            ),
+            child: Row(
               children: [
-                Icon(Icons.analytics, size: 18, color: Colors.pink.shade400),
-                const SizedBox(width: 6),
-                Text(
-                  'Your Pronunciation',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.pink.shade700,
-                  ),
-                ),
+                Text('YOUR SOUND', style: SakuraType.caption(size: 11).copyWith(
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w600,
+                )),
                 const Spacer(),
                 Text(
                   '${profile.totalAttempts} attempts',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: SakuraType.caption(size: 11),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: SakuraSpace.l),
+            child: Text(
+              'Pronunciation map',
+              style: SakuraType.title(size: 17),
+            ),
+          ),
+          const SizedBox(height: SakuraSpace.m),
 
-            // Weakest sounds
-            if (weakest3.isNotEmpty) ...[
-              Text(
-                'Sounds to work on:',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 8),
-              Row(
+          // Bento grid of weakest sounds
+          if (weakest3.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: SakuraSpace.m),
+              child: Row(
                 children: weakest3.map((p) {
                   final color = p.avgScore >= 80
-                      ? Colors.green
+                      ? SakuraColors.matcha
                       : p.avgScore >= 50
-                          ? Colors.orange
-                          : Colors.red;
+                          ? SakuraColors.kinari
+                          : SakuraColors.momiji;
                   return Expanded(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: SakuraSpace.m),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: color.withOpacity(0.3)),
+                        color: color.withOpacity(0.08),
+                        borderRadius: const BorderRadius.all(SakuraRadius.s),
+                        border: Border.all(color: color.withOpacity(0.25)),
                       ),
                       child: Column(
                         children: [
-                          Text(
-                            p.phoneme,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
+                          Text(p.phoneme, style: SakuraType.kana(color: color, size: 26)),
                           const SizedBox(height: 2),
                           Text(
-                            '${p.avgScore.round()}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: color,
+                            '${p.avgScore.round()}',
+                            style: SakuraType.label(color: color, size: 13).copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           if (p.trend == 'improving')
-                            Text('↑', style: TextStyle(fontSize: 10, color: Colors.green.shade600)),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '↑',
+                                style: SakuraType.caption(color: SakuraColors.matcha, size: 10),
+                              ),
+                            ),
                         ],
                       ),
                     ),
                   );
                 }).toList(),
               ),
-            ],
+            ),
 
-            // Encouragement
-            if (profile.needsPractice.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(10),
+          // Recommendation strip
+          if (profile.needsPractice.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SakuraSpace.m, SakuraSpace.m, SakuraSpace.m, 0,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(SakuraSpace.m),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  color: SakuraColors.washiDeep,
+                  borderRadius: const BorderRadius.all(SakuraRadius.s),
                 ),
                 child: Row(
                   children: [
-                    const Text('🎯', style: TextStyle(fontSize: 13)),
-                    const SizedBox(width: 6),
+                    const Text('◉', style: TextStyle(color: SakuraColors.sakura, fontSize: 12)),
+                    const SizedBox(width: SakuraSpace.s),
                     Expanded(
                       child: Text(
-                        'Sakura recommends: practice 「${profile.needsPractice}」 next!',
-                        style: TextStyle(fontSize: 12, color: Colors.brown.shade700),
+                        'Practice ${profile.needsPractice} next',
+                        style: SakuraType.body(size: 13, color: SakuraColors.sumi),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
 
-            // Tap to refresh
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: _loadProfile,
-                child: Icon(Icons.refresh, size: 16, color: Colors.grey.shade400),
-              ),
+          const SizedBox(height: SakuraSpace.m),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyCard() {
+    return Container(
+      padding: const EdgeInsets.all(SakuraSpace.l),
+      decoration: BoxDecoration(
+        color: SakuraColors.white,
+        borderRadius: const BorderRadius.all(SakuraRadius.m),
+        border: Border.all(color: SakuraColors.bamboo),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: SakuraColors.washiDeep,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.mic_none_rounded,
+                color: SakuraColors.mist, size: 22),
+          ),
+          const SizedBox(height: SakuraSpace.m),
+          Text('No pronunciation data yet', style: SakuraType.title(size: 15)),
+          const SizedBox(height: SakuraSpace.xs),
+          Text(
+            'Record your voice in a lesson to start building your sound profile.',
+            style: SakuraType.caption(),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  final bool isPro;
+  const _StatusRow({required this.isPro});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LessonState>(
+      builder: (_, state, __) {
+        final tier = state.usage?.tier ?? (isPro ? 'pro' : 'free');
+        final remaining = state.usage?.lessonsRemaining ??
+            (isPro ? 999 : 5);
+        return Row(
+          children: [
+            _Pill(
+              label: 'Level ${state.currentLevel}',
+              fg: SakuraColors.sumi,
+              bg: SakuraColors.washiDeep,
+            ),
+            const SizedBox(width: SakuraSpace.s),
+            _Pill(
+              label: tier == 'pro' ? 'Unlimited' : '$remaining left today',
+              fg: tier == 'pro' ? SakuraColors.washi : SakuraColors.sumi,
+              bg: tier == 'pro' ? SakuraColors.matcha : SakuraColors.washiDeep,
+              icon: tier == 'pro' ? Icons.stars_rounded : Icons.menu_book_rounded,
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+  final Color fg;
+  final Color bg;
+  final IconData? icon;
+  const _Pill({required this.label, required this.fg, required this.bg, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SakuraSpace.m, vertical: SakuraSpace.s,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: const BorderRadius.all(SakuraRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, color: fg, size: 14),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: SakuraType.label(color: fg, size: 12).copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CircleIcon({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: const BorderRadius.all(SakuraRadius.pill),
+      child: Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(
+          color: SakuraColors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: SakuraColors.bamboo),
         ),
+        child: Icon(icon, color: SakuraColors.sumi, size: 18),
       ),
     );
   }

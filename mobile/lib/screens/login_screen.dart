@@ -1,70 +1,82 @@
-/// Login screen — simple email/password for MVP.
+/// Login screen — quiet landing, just an entry.
 import 'package:flutter/material.dart';
+import '../config/tokens.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('🌸', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 16),
-              Text(
-                'Sakura',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink.shade800,
-                ),
+      body: Stack(
+        children: [
+          // Kanji watermark — 春 (haru, spring)
+          Positioned(
+            top: -60,
+            right: -80,
+            child: Text(
+              '春',
+              style: SakuraType.display(
+                color: SakuraColors.sakuraSoft.withOpacity(0.6),
+                size: 380,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Learn Japanese pronunciation\nwith AI',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 48),
-
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // For MVP, just skip to home
-                    Navigator.of(context).pushReplacementNamed('/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pink.shade400,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: SakuraSpace.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(flex: 2),
+                  // Eyebrow — Japanese tagline
+                  Text(
+                    '日本語を話す',
+                    style: SakuraType.japanese(color: SakuraColors.sakura, size: 16),
+                  ),
+                  const SizedBox(height: SakuraSpace.m),
+                  // Display
+                  Text(
+                    'Sakura',
+                    style: SakuraType.display(size: 48),
+                  ),
+                  const SizedBox(height: SakuraSpace.s),
+                  Text(
+                    'Your AI pronunciation tutor.\nLearn to speak Japanese with confidence.',
+                    style: SakuraType.body(color: SakuraColors.mist, size: 16),
+                  ),
+                  const Spacer(flex: 3),
+                  // Primary CTA
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushReplacementNamed('/home');
+                      },
+                      child: const Text(
+                        'Begin',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Get Started',
-                    style: TextStyle(fontSize: 16),
+                  const SizedBox(height: SakuraSpace.m),
+                  Center(
+                    child: Text(
+                      'No account needed',
+                      style: SakuraType.caption(),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: SakuraSpace.l),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'No account needed to start',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

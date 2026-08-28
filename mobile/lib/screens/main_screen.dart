@@ -1,9 +1,9 @@
 /// Main scaffold with bottom navigation.
 import 'package:flutter/material.dart';
+import '../config/tokens.dart';
 import 'home_screen.dart';
 import 'learn_screen.dart';
 import 'lesson_screen.dart';
-import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -32,26 +32,45 @@ class _MainScreenState extends State<MainScreen> {
         index: _tabIndex,
         children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _tabIndex,
-        onTap: _setTab,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.pink.shade600,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: SakuraColors.white,
+          border: Border(
+            top: BorderSide(color: SakuraColors.bamboo, width: 1),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: 'Learn',
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: BottomNavigationBar(
+              currentIndex: _tabIndex,
+              onTap: _setTab,
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: SakuraColors.white,
+              selectedItemColor: SakuraColors.sakura,
+              unselectedItemColor: SakuraColors.stone,
+              elevation: 0,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.cottage_outlined),
+                  activeIcon: Icon(Icons.cottage_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.menu_book_outlined),
+                  activeIcon: Icon(Icons.menu_book_rounded),
+                  label: 'Learn',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.chat_bubble_outline_rounded),
+                  activeIcon: Icon(Icons.chat_bubble_rounded),
+                  label: 'Tutor',
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble),
-            label: 'Tutor',
-          ),
-        ],
+        ),
       ),
     );
   }
