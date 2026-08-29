@@ -1,42 +1,70 @@
-name: iOS — TestFlight
+# Sakura Sensei — iOS Build & TestFlight Upload (consolidated)
+#
+# 合并的 iOS workflow：
+#   - 之前有 build-ios.yml + ios-testflight.yml 两条，盯错一条就以为成功了
+#   - 现在只有这一条，build → TestFlight upload 一条龙
+#   - upload 步骤不再 continue-on-error，真失败会直接挂
+#
+# 触发方式:
+#   - push 到 master 分支
+#   - 或手动在 Actions 页面触发 (workflow_dispatch)
+#
+# 前置条件 — 仓库 Secrets (Settings → Secrets and variables → Actions):
+#   BUILD_CERTIFICATE_BASE64          — Apple Distribution 证书(.p12) 的 Base64
+#   P12_PASSWORD                      — .p12 导出密码
+#   BUILD_PROVISION_PROFILE_BASE64    — App Store 描述文件的 Base64
+#   APP_STORE_CONNECT_USERNAME        — haojia.zhang@icloud.com
+#   APP_STORE_CONNECT_PASSWORD        — App 专用密码
+#
+# 版本号规则:
+#   - CFBundleShortVersionString + CFBundleVersion 都从 pubspec.yaml 走
+#   - 格式: version: 1.1.0+57 → short=1.1.0, build=57
+#   - App Store 上传要求 build 号严格递增，下次上传前手动改 pubspec.yaml
+
+name: iOS — Build & TestFlight
 
 on:
   push:
-    branches: [master, main, "release*", "beta*"]
+    branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-upload:
+    name: Build IPA & Upload to TestFlight
     runs-on: macos-latest
+    timeout-minutes: 45
 
     defaults:
       run:
         working-directory: mobile
 
     steps:
-      - name: Checkout
+      - name: ⬇️ Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: 🔧 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: flutter pub get
 
-      - name: Import code signing certificate
+      - name: 🔐 Import code signing certificate
         env:
           BUILD_CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         shell: bash
         run: |
-          set -x
+          set -euo pipefail
           KEYCHAIN_PATH="$RUNNER_TEMP/ci-signing.keychain-db"
 
           echo "$BUILD_CERT_BASE64" | base64 --decode > /tmp/cert.p12
-          echo "Decode exit: $?"
           file /tmp/cert.p12
 
           security create-keychain -p "" "$KEYCHAIN_PATH"
@@ -44,19 +72,17 @@ jobs:
           security unlock-keychain -p "" "$KEYCHAIN_PATH"
 
           security import /tmp/cert.p12 -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -A
-          echo "Import exit: $?"
 
           security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
-          echo "=== Identities in keychain ==="
           security find-identity -v -p codesigning
 
-      - name: Install provisioning profile
+      - name: 📜 Install provisioning profile
         env:
           PROVISION_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         shell: bash
         run: |
-          set -x
+          set -euo pipefail
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_DIR"
           echo "$PROVISION_BASE64" | base64 --decode > /tmp/profile.mobileprovision
@@ -65,9 +91,8 @@ jobs:
           cp /tmp/profile.mobileprovision "$PROFILE_DIR/d9cbe5c8-9a39-43a0-b383-4bb58e9c8ad9.mobileprovision"
           ls -la "$PROFILE_DIR/"
 
-      - name: 🔧 Select Xcode 26+
+      - name: 🛠️ Select Xcode 26+
         run: |
-          ls /Applications | grep -i xcode
           XCODE=$(ls /Applications | grep -i "xcode" | sort | tail -1)
           echo "Latest Xcode found: $XCODE"
           if [ -n "$XCODE" ]; then
@@ -75,31 +100,35 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: 🔍 Debug - resolve xcodebuild settings
-        run: |
-          xcodebuild -version
-          echo "=== Show how xcodebuild resolves signing ==="
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -showBuildSettings 2>&1 | grep -E "PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER"
-
       - name: 🏗️ Build & Sign IPA
+        # 版本号 + build 号都从 pubspec.yaml 走，格式: 1.1.0+57
+        # CFBundleShortVersionString=1.1.0, CFBundleVersion=57
+        # 下次要重新上传时手动改 pubspec.yaml 的 build 号
         run: |
           flutter build ipa --release \
-            --export-options-plist=ios/ExportOptions.plist \
-            --build-number=${GITHUB_RUN_NUMBER}
+            --export-options-plist=ios/ExportOptions.plist
+          echo "=== Built version ==="
+          grep '^version:' pubspec.yaml
+          echo "=== IPA ==="
+          ls -la build/ios/ipa/
 
+      - name: 📤 Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sakura-Sensei-IPA
+          path: mobile/build/ios/ipa/*.ipa
+
+      # ⚠️ 这一步没有 continue-on-error —— 真失败会挂掉，盯监控器就能立刻看到
       - name: 🚀 Upload to TestFlight
         env:
           ASC_USERNAME: ${{ secrets.APP_STORE_CONNECT_USERNAME }}
           ASC_PASSWORD: ${{ secrets.APP_STORE_CONNECT_PASSWORD }}
         shell: bash
         run: |
-          set -x
+          set -euo pipefail
           IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
           if [ -z "$IPA" ]; then
-            echo "No IPA found!"
+            echo "::error::No IPA found in build/ios/ipa"
             ls -la build/ios/ipa/ 2>/dev/null || echo "No build/ios/ipa dir"
             exit 1
           fi
@@ -110,3 +139,12 @@ jobs:
             -t ios \
             -u "$ASC_USERNAME" \
             -p "$ASC_PASSWORD"
+
+      - name: ✅ Build & Upload complete
+        if: success()
+        run: |
+          echo "=========================================="
+          echo "✅ TestFlight upload succeeded"
+          echo "   Version: $(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          echo "   Run:     ${{ github.run_id }}"
+          echo "=========================================="
