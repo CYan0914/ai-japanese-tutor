@@ -47,18 +47,12 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Sakura Tutor uses the microphone to record your Japanese pronunciation for AI-powered speaking practice and feedback.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.googleusercontent.apps.REPLACE_WITH_GOOGLE_IOS_CLIENT_ID</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.REPLACE_WITH_GOOGLE_IOS_CLIENT_ID</string>
-			</array>
-		</dict>
-	</array>
+	<!--
+	CFBundleURLTypes for Google Sign-In are added at runtime by the
+	google_sign_in plugin once a real GoogleService-Info.plist with a
+	valid client ID is dropped in ios/Runner/. We do NOT add a placeholder
+	scheme here because uppercase letters in the placeholder cause
+	TestFlight to reject the upload (90158).
+	-->
 </dict>
 </plist>
