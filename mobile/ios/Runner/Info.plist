@@ -47,5 +47,18 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Sakura Tutor uses the microphone to record your Japanese pronunciation for AI-powered speaking practice and feedback.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps.REPLACE_WITH_GOOGLE_IOS_CLIENT_ID</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REPLACE_WITH_GOOGLE_IOS_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

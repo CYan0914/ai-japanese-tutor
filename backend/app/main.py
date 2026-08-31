@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routers import auth_oauth as auth_oauth_routes
 from app.routers import auth_router as auth_routes
 from app.routers import chat, health, user
 
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router, prefix="/api/v1", tags=["Chat"])
     app.include_router(user.router, prefix="/api/v1", tags=["User"])
     app.include_router(auth_routes.router, prefix="/api/v1", tags=["Auth"])
+    app.include_router(auth_oauth_routes.router, prefix="/api/v1", tags=["Auth"])
 
     return app
 

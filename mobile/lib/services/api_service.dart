@@ -1,16 +1,27 @@
 /// HTTP client for the Sakura backend API.
+///
+/// Token resolution: AuthState.token → /auth/token (anonymous).
+/// Once the user signs in via the Account tab, AuthState.token is set and
+/// all subsequent calls use that token. The anonymous bootstrap token is
+/// replaced the first time the user signs in (the backend issues a fresh
+/// bearer for each identity).
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 import '../models/tutor_response.dart';
+import 'auth_state.dart';
 
 class ApiService {
-  static const String _tokenKey = 'auth_token';
+  static const String _tokenKey = 'auth.token';
 
   // ── Token Management ──
 
   static Future<String?> getToken() async {
+    final auth = AuthState.instance;
+    if (auth != null && auth.token != null && auth.token!.isNotEmpty) {
+      return auth.token;
+    }
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
   }
@@ -27,8 +38,20 @@ class ApiService {
 
   /// Get or create an auth token from the backend.
   static Future<String> ensureToken() async {
+    final auth = AuthState.instance;
+    if (auth != null && auth.token != null && auth.token!.isNotEmpty) {
+      return auth.token!;
+    }
     final existing = await getToken();
-    if (existing != null && existing.isNotEmpty) return existing;
+    if (existing != null && existing.isNotEmpty) {
+      // Mirror into AuthState so the UI can see the user is "signed in"
+      // (we may not have provider info; that's fine — AccountScreen
+      // shows "signed in" only when isSignedIn is true).
+      if (auth != null && auth.token == null) {
+        auth.setAnonymousToken(existing);
+      }
+      return existing;
+    }
 
     final resp = await http.post(
       Uri.parse('${AppConstants.apiBaseUrl}/auth/token'),
@@ -41,6 +64,7 @@ class ApiService {
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     final token = data['token'] as String;
     await saveToken(token);
+    if (auth != null) auth.setAnonymousToken(token);
     return token;
   }
 

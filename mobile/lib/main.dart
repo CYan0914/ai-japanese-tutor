@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
+import 'services/auth_state.dart';
 import 'services/lesson_state.dart';
 import 'services/kana_state.dart';
 
@@ -21,11 +22,16 @@ void main() {
   final kanaState = KanaState();
   kanaState.load(); // load persisted progress
 
+  final auth = AuthState();
+  // Restore persisted auth (token + user) so the user stays signed in.
+  auth.bootstrap();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LessonState()),
         ChangeNotifierProvider.value(value: kanaState),
+        ChangeNotifierProvider.value(value: auth),
       ],
       child: const SakuraApp(),
     ),

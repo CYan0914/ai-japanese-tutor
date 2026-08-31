@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # ── Rate Limit ──
     free_daily_limit: int = 10
 
+    # ── OAuth ──
+    # iOS OAuth client ID from Google Cloud Console.
+    # When empty, /auth/google returns 501 (sign-in button will be disabled).
+    google_ios_client_id: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

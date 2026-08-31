@@ -1,6 +1,7 @@
 /// Main scaffold with bottom navigation.
 import 'package:flutter/material.dart';
 import '../config/tokens.dart';
+import 'account_screen.dart';
 import 'home_screen.dart';
 import 'learn_screen.dart';
 import 'lesson_screen.dart';
@@ -19,6 +20,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     LearnScreen(),
     LessonScreen(),
+    AccountScreen(),
   ];
 
   void _setTab(int idx) {
@@ -66,6 +68,11 @@ class _MainScreenState extends State<MainScreen> {
                   icon: Icon(Icons.chat_bubble_outline_rounded),
                   activeIcon: Icon(Icons.chat_bubble_rounded),
                   label: 'Tutor',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded),
+                  label: 'Account',
                 ),
               ],
             ),

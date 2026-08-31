@@ -74,7 +74,7 @@ class _LessonScreenState extends State<LessonScreen> {
           children: [
             const Text('桜', style: TextStyle(color: SakuraColors.sakura, fontSize: 18)),
             const SizedBox(width: 8),
-            Text('Sakura Sensei', style: SakuraType.title(size: 17)),
+            Text('Sakura Tutor', style: SakuraType.title(size: 17)),
           ],
         ),
         actions: [
