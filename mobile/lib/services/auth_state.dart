@@ -141,8 +141,7 @@ class AuthState extends ChangeNotifier {
     try {
       final google = GoogleSignIn(
         scopes: const ['email'],
-        // clientId omitted — google_sign_in will read it from
-        // GoogleService-Info.plist on iOS.
+        clientId: AppConstants.googleIosClientId,
       );
       final account = await google.signIn();
       if (account == null) {

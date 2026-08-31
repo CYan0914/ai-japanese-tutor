@@ -4,6 +4,15 @@ class AppConstants {
 
   static const String apiBaseUrl = 'https://sakura.taomindapp.com/api/v1';
 
+  // ── Google Sign-In (iOS OAuth client) ──
+  /// Must match backend GOOGLE_IOS_CLIENT_ID (the backend verifies the
+  /// ID token's aud claim against this value).
+  static const String googleIosClientId =
+      '46270774255-dpqpl7i64e2k3nmjd633l97rem553938.apps.googleusercontent.com';
+  /// Reversed client ID — registered as a URL scheme in Info.plist.
+  static const String googleIosReversedClientId =
+      'com.googleusercontent.apps.46270774255-dpqpl7i64e2k3nmjd633l97rem553938';
+
   // Free tier daily limit
   static const int freeDailyLimit = 5;
 
