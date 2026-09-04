@@ -77,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Spacer(),
                         _CircleIcon(
                           icon: Icons.person_outline,
+                          semanticLabel: 'Open profile',
                           onTap: () => Navigator.of(context)
                               .push(MaterialPageRoute(
                                 builder: (_) => const ProfileScreen(),
@@ -253,33 +254,37 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? SakuraColors.kinari
                           : SakuraColors.momiji;
                   return Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: SakuraSpace.m),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.08),
-                        borderRadius: const BorderRadius.all(SakuraRadius.s),
-                        border: Border.all(color: color.withOpacity(0.25)),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(p.phoneme, style: SakuraType.kana(color: color, size: 26)),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${p.avgScore.round()}',
-                            style: SakuraType.label(color: color, size: 13).copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (p.trend == 'improving')
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                '↑',
-                                style: SakuraType.caption(color: SakuraColors.matcha, size: 10),
+                    child: Semantics(
+                      label: 'Phoneme ${p.phoneme}, average score ${p.avgScore.round()}'
+                          '${p.trend == 'improving' ? ', improving' : ''}',
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: SakuraSpace.m),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.08),
+                          borderRadius: const BorderRadius.all(SakuraRadius.s),
+                          border: Border.all(color: color.withOpacity(0.25)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(p.phoneme, style: SakuraType.kana(color: color, size: 26)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${p.avgScore.round()}',
+                              style: SakuraType.label(color: color, size: 13).copyWith(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                        ],
+                            if (p.trend == 'improving')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '↑',
+                                  style: SakuraType.caption(color: SakuraColors.matcha, size: 10),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -424,21 +429,30 @@ class _Pill extends StatelessWidget {
 class _CircleIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _CircleIcon({required this.icon, required this.onTap});
+  final String? semanticLabel;
+  const _CircleIcon({
+    required this.icon,
+    required this.onTap,
+    this.semanticLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: const BorderRadius.all(SakuraRadius.pill),
-      child: Container(
-        width: 38, height: 38,
-        decoration: BoxDecoration(
-          color: SakuraColors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: SakuraColors.bamboo),
+    return Semantics(
+      label: semanticLabel ?? 'Open',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.all(SakuraRadius.pill),
+        child: Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: SakuraColors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: SakuraColors.bamboo),
+          ),
+          child: Icon(icon, color: SakuraColors.sumi, size: 18),
         ),
-        child: Icon(icon, color: SakuraColors.sumi, size: 18),
       ),
     );
   }

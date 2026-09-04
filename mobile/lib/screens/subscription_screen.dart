@@ -315,20 +315,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: SakuraSpace.l),
 
             // ── Purchase button (dark CTA) ──
+            // Two-step flow: tap a tier to select (highlights), then tap
+            // this CTA to confirm. Prevents accidental purchase of the
+            // default tier (e.g. yearly) when the user just wanted to
+            // compare prices.
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: (_purchasing || _packages.isEmpty)
+                onPressed: (_purchasing ||
+                        _packages.isEmpty ||
+                        _selectedPackage == null)
                     ? null
-                    : () {
-                        // Default to yearly (best value) if available; else first
-                        final target = yearly ?? _packages.first;
-                        _purchase(target);
-                      },
+                    : () => _purchase(_selectedPackage!),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SakuraColors.sumi,
                   foregroundColor: SakuraColors.washi,
+                  disabledBackgroundColor: SakuraColors.bamboo,
+                  disabledForegroundColor: SakuraColors.stone,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(SakuraRadius.m),
                   ),
@@ -343,9 +347,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                       )
                     : Text(
-                        'Subscribe to Pro',
-                        style: SakuraType.label(size: 15, color: SakuraColors.washi)
-                            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                        _selectedPackage == null
+                            ? 'Choose a plan above'
+                            : 'Subscribe to Pro',
+                        style: SakuraType.label(
+                          size: 15,
+                          color: _selectedPackage == null
+                              ? SakuraColors.stone
+                              : SakuraColors.washi,
+                        ).copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3),
                       ),
               ),
             ),
@@ -441,8 +453,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       onTap: (_purchasing || package == null)
           ? null
           : () {
+              // Just select — purchase is confirmed by tapping the
+              // Subscribe CTA. This avoids buying the first package the
+              // user touches.
               setState(() => _selectedPackage = package);
-              _purchase(package);
             },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),

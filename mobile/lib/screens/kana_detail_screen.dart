@@ -144,30 +144,36 @@ class _KanaDetailScreenState extends State<KanaDetailScreen> {
                       Positioned(
                         right: 10,
                         bottom: 10,
-                        child: Material(
-                          color: levelColor.withOpacity(0.12),
-                          borderRadius: const BorderRadius.all(SakuraRadius.m),
-                          child: InkWell(
+                        child: Semantics(
+                          label: _isPlaying
+                              ? 'Loading pronunciation'
+                              : 'Play pronunciation',
+                          button: true,
+                          child: Material(
+                            color: levelColor.withOpacity(0.12),
                             borderRadius: const BorderRadius.all(SakuraRadius.m),
-                            onTap: _isPlaying ? null : _playPronunciation,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              alignment: Alignment.center,
-                              child: _isPlaying
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                            child: InkWell(
+                              borderRadius: const BorderRadius.all(SakuraRadius.m),
+                              onTap: _isPlaying ? null : _playPronunciation,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                child: _isPlaying
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: levelColor,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.volume_up_rounded,
                                         color: levelColor,
+                                        size: 22,
                                       ),
-                                    )
-                                  : Icon(
-                                      Icons.volume_up_rounded,
-                                      color: levelColor,
-                                      size: 22,
-                                    ),
+                              ),
                             ),
                           ),
                         ),

@@ -24,37 +24,41 @@ class KanaTile extends StatelessWidget {
 
     final (bg, fg, accent, borderColor) = _styleFor(level);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: const BorderRadius.all(SakuraRadius.s),
-          border: Border.all(color: borderColor, width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              kana.character,
-              style: SakuraType.kana(color: fg, size: 28),
-            ),
-            const SizedBox(height: 2),
-            // Mastery dot
-            Container(
-              width: 4, height: 4,
-              decoration: BoxDecoration(
-                color: accent,
-                shape: BoxShape.circle,
+    return Semantics(
+      label: '${kana.character}, ${kana.romaji}, ${level.name}',
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: const BorderRadius.all(SakuraRadius.s),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                kana.character,
+                style: SakuraType.kana(color: fg, size: 28),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              kana.romaji,
-              style: SakuraType.caption(size: 10, color: SakuraColors.mist),
-            ),
-          ],
+              const SizedBox(height: 2),
+              // Mastery dot
+              Container(
+                width: 4, height: 4,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                kana.romaji,
+                style: SakuraType.caption(size: 10, color: SakuraColors.mist),
+              ),
+            ],
+          ),
         ),
       ),
     );

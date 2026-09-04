@@ -196,19 +196,25 @@ class _LessonScreenState extends State<LessonScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Mode toggle
-                InkWell(
-                  onTap: () => setState(() => _isTextMode = !_isTextMode),
-                  borderRadius: const BorderRadius.all(SakuraRadius.pill),
-                  child: Container(
-                    width: 42, height: 42,
-                    decoration: BoxDecoration(
-                      color: _isTextMode ? SakuraColors.washiDeep : SakuraColors.sakura,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isTextMode ? Icons.mic_none_rounded : Icons.keyboard_alt_outlined,
-                      color: _isTextMode ? SakuraColors.sumi : SakuraColors.washi,
-                      size: 20,
+                Semantics(
+                  label: _isTextMode
+                      ? 'Switch to voice input'
+                      : 'Switch to text input',
+                  button: true,
+                  child: InkWell(
+                    onTap: () => setState(() => _isTextMode = !_isTextMode),
+                    borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                    child: Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: _isTextMode ? SakuraColors.washiDeep : SakuraColors.sakura,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isTextMode ? Icons.mic_none_rounded : Icons.keyboard_alt_outlined,
+                        color: _isTextMode ? SakuraColors.sumi : SakuraColors.washi,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -219,19 +225,23 @@ class _LessonScreenState extends State<LessonScreen> {
                 if (_isTextMode)
                   Padding(
                     padding: const EdgeInsets.only(left: SakuraSpace.s),
-                    child: InkWell(
-                      onTap: _sendText,
-                      borderRadius: const BorderRadius.all(SakuraRadius.pill),
-                      child: Container(
-                        width: 42, height: 42,
-                        decoration: const BoxDecoration(
-                          color: SakuraColors.sumi,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_upward_rounded,
-                          color: SakuraColors.washi,
-                          size: 20,
+                    child: Semantics(
+                      label: 'Send message',
+                      button: true,
+                      child: InkWell(
+                        onTap: _sendText,
+                        borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                        child: Container(
+                          width: 42, height: 42,
+                          decoration: const BoxDecoration(
+                            color: SakuraColors.sumi,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_upward_rounded,
+                            color: SakuraColors.washi,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),

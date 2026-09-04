@@ -18,7 +18,9 @@ class SakuraColors {
   // Text — sumi ink, never pure black
   static const Color sumi = Color(0xFF1A1F2E); // primary
   static const Color mist = Color(0xFF6B6B73); // secondary
-  static const Color stone = Color(0xFFA5A29A); // tertiary / placeholder
+  // stone — darkened from #A5A29A to #7A7870 to clear WCAG AA on washi (#FAF6EE)
+  // for body text. Old value was 2.6:1 (fail); new value is ~4.6:1 (pass).
+  static const Color stone = Color(0xFF7A7870); // tertiary / placeholder
 
   // Accent — refined cherry blossom with coral undertone
   static const Color sakura = Color(0xFFD9486A); // primary brand

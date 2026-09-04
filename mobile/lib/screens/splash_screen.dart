@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../config/tokens.dart';
 import '../services/api_service.dart';
+import '../services/auth_state.dart';
 import '../services/subscription_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -30,10 +31,17 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
+      // New install or signed-out user: route to /login so they see the
+      // Apple / Google / Email choice. Returning signed-in users skip
+      // the choice and go straight to /home.
+      final auth = AuthState.instance;
+      final isRealUser = auth?.user != null &&
+          auth!.user!.provider != AuthProvider.anonymous;
+      Navigator.of(context)
+          .pushReplacementNamed(isRealUser ? '/home' : '/login');
     } catch (_) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 

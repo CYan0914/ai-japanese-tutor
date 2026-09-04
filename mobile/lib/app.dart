@@ -17,6 +17,21 @@ class SakuraApp extends StatelessWidget {
       title: 'Sakura — AI Japanese Tutor',
       debugShowCheckedModeBanner: false,
       theme: buildSakuraTheme(),
+      // Cap Dynamic Type at 1.3x so accessibility text scaling respects
+      // the user's preference but the bento layouts don't explode.
+      // Flutter's Text widget already auto-scales via textScaler; this
+      // just bounds the upper end.
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final scaler = mq.textScaler.clamp(
+          minScaleFactor: 1.0,
+          maxScaleFactor: 1.3,
+        );
+        return MediaQuery(
+          data: mq.copyWith(textScaler: scaler),
+          child: child!,
+        );
+      },
       initialRoute: '/',
       onGenerateRoute: (settings) {
         switch (settings.name) {
