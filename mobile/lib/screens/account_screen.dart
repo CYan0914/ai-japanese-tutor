@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/tokens.dart';
 import '../services/auth_state.dart';
+import '../widgets/social_button.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -116,7 +117,7 @@ class _SignInViewState extends State<_SignInView> {
           const SizedBox(height: SakuraSpace.xl),
           if (!_showEmailForm) ...[
             // Apple
-            _SocialButton(
+            SocialButton(
               label: 'Continue with Apple',
               icon: Icons.apple_rounded,
               background: Colors.black,
@@ -126,7 +127,7 @@ class _SignInViewState extends State<_SignInView> {
             ),
             const SizedBox(height: SakuraSpace.m),
             // Google
-            _SocialButton(
+            SocialButton(
               label: 'Continue with Google',
               icon: Icons.g_mobiledata_rounded,
               background: SakuraColors.white,
@@ -245,67 +246,6 @@ class _SignInViewState extends State<_SignInView> {
           ],
           const SizedBox(height: SakuraSpace.xxl),
         ],
-      ),
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color background;
-  final Color foreground;
-  final Color? border;
-  final bool busy;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.label,
-    required this.icon,
-    required this.background,
-    required this.foreground,
-    this.border,
-    required this.busy,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: Material(
-        color: background,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(SakuraRadius.m),
-          side: border != null
-              ? BorderSide(color: border!)
-              : BorderSide.none,
-        ),
-        child: InkWell(
-          borderRadius: const BorderRadius.all(SakuraRadius.m),
-          onTap: busy ? null : onTap,
-          child: Center(
-            child: busy
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, color: foreground, size: 22),
-                      const SizedBox(width: SakuraSpace.s),
-                      Text(
-                        label,
-                        style: SakuraType.label(
-                            color: foreground, size: 15),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
       ),
     );
   }
