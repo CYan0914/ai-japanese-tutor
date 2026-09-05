@@ -6,6 +6,20 @@ import '../models/kana.dart';
 
 enum MasteryLevel { unseen, learning, familiar, mastered }
 
+/// User-facing label for VoiceOver, kana detail chip, and any other
+/// surface that surfaces mastery state. Don't use `level.name` directly —
+/// that exposes the internal enum string ("unseen") which is jargon.
+extension MasteryLevelLabel on MasteryLevel {
+  String get displayLabel {
+    switch (this) {
+      case MasteryLevel.unseen:    return 'New';
+      case MasteryLevel.learning:  return 'Learning';
+      case MasteryLevel.familiar:  return 'Familiar';
+      case MasteryLevel.mastered:  return 'Mastered';
+    }
+  }
+}
+
 class KanaState extends ChangeNotifier {
   final Map<String, MasteryLevel> _progress = {};
   KanaType _currentType = KanaType.hiragana;

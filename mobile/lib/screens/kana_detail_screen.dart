@@ -64,14 +64,7 @@ class _KanaDetailScreenState extends State<KanaDetailScreen> {
     }
   }
 
-  String _levelLabel() {
-    switch (widget.level) {
-      case MasteryLevel.unseen: return 'New';
-      case MasteryLevel.learning: return 'Learning';
-      case MasteryLevel.familiar: return 'Familiar';
-      case MasteryLevel.mastered: return 'Mastered';
-    }
-  }
+  String _levelLabel() => widget.level.displayLabel;
 
   IconData _levelIcon() {
     switch (widget.level) {

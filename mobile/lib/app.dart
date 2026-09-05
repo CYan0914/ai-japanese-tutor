@@ -17,10 +17,10 @@ class SakuraApp extends StatelessWidget {
       title: 'Sakura — AI Japanese Tutor',
       debugShowCheckedModeBanner: false,
       theme: buildSakuraTheme(),
-      // Cap Dynamic Type at 1.3x so accessibility text scaling respects
-      // the user's preference but the bento layouts don't explode.
-      // Flutter's Text widget already auto-scales via textScaler; this
-      // just bounds the upper end.
+      // Cap Dynamic Type at 1.3x — iOS 17+ system textScaler can go to 3x
+      // or more, which clips our fixed-height containers (bento tiles,
+      // 52px social buttons, kana grid). The clamp preserves user intent
+      // for moderate scaling without breaking layout.
       builder: (context, child) {
         final mq = MediaQuery.of(context);
         final scaler = mq.textScaler.clamp(

@@ -25,7 +25,7 @@ class KanaTile extends StatelessWidget {
     final (bg, fg, accent, borderColor) = _styleFor(level);
 
     return Semantics(
-      label: '${kana.character}, ${kana.romaji}, ${level.name}',
+      label: '${kana.character}, ${kana.romaji}, ${level.displayLabel}',
       button: true,
       child: GestureDetector(
         onTap: onTap,
