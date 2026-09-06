@@ -30,7 +30,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
+      body: _LazyIndexedStack(
         index: _tabIndex,
         children: _screens,
       ),
@@ -79,6 +79,66 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// LazyIndexedStack — only inserts a tab into the tree the first time it
+/// becomes the active tab. Off-screen tabs are kept in memory once shown
+/// so state (scroll position, in-flight requests) is preserved across
+/// tab switches, but their initState only runs when they're first shown.
+///
+/// This is the same pattern Flutter 3.32+ provides as `LazyIndexedStack`
+/// in the framework, but we hand-roll it here because the project is on
+/// Flutter 3.29.2. Once we upgrade past 3.32, replace this with the
+/// built-in.
+class _LazyIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+
+  const _LazyIndexedStack({required this.index, required this.children});
+
+  @override
+  State<_LazyIndexedStack> createState() => _LazyIndexedStackState();
+}
+
+class _LazyIndexedStackState extends State<_LazyIndexedStack> {
+  late final List<bool> _shown = List<bool>.filled(
+    widget.children.length,
+    false,
+    growable: false,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.index < _shown.length) {
+      _shown[widget.index] = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _LazyIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index != oldWidget.index && widget.index < _shown.length) {
+      _shown[widget.index] = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topLeft,
+      children: [
+        for (int i = 0; i < widget.children.length; i++)
+          Offstage(
+            offstage: i != widget.index,
+            child: TickerMode(
+              enabled: i == widget.index,
+              child: _shown[i] ? widget.children[i] : const SizedBox.shrink(),
+            ),
+          ),
+      ],
     );
   }
 }
