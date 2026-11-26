@@ -1,0 +1,67 @@
+# Sakura Tutor API — Fly.io auto-deploy
+#
+# 触发方式:
+#   - push 到 master 且改动触及 backend/ → 自动 fly deploy
+#   - 或手动在 Actions 页面触发 (workflow_dispatch)
+#   - 移动端-only 的改动不会触发（paths 过滤）
+#
+# 前置条件 — 仓库 Secrets (Settings → Secrets and variables → Actions):
+#   FLY_API_TOKEN — fly auth token (fly tokens create deploy -a sakura-tutor-api)
+#
+# deploy 后验证:
+#   - curl https://sakura.taomindapp.com/api/v1/health  → 200
+#   - curl https://sakura.taomindapp.com/api/v1/ready   → ready:true
+#   - curl https://sakura.taomindapp.com/api/v1/metrics → 计数器在走
+
+name: Backend — Fly Deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-fly-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only
+
+      - name: Verify /health + /ready
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6; do
+            if curl -sf -m 10 https://sakura.taomindapp.com/api/v1/health > /dev/null; then
+              echo "health OK (attempt $i)"
+              break
+            fi
+            echo "health not ready yet (attempt $i), waiting 20s..."
+            sleep 20
+            if [ "$i" = 6 ]; then
+              echo "::error::/health never came up after deploy"
+              exit 1
+            fi
+          done
+          echo "--- /ready ---"
+          curl -s -m 15 https://sakura.taomindapp.com/api/v1/ready
+          echo

@@ -1,4 +1,6 @@
 /// Chat bubble — user and AI messages, with refined typography.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../config/tokens.dart';
 
@@ -53,7 +55,14 @@ class ChatBubble extends StatelessWidget {
           // Bubble
           Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.82,
+              // 原来直接用整屏宽 ×0.82。折叠态没问题；iPhone Duo 展开态内屏
+              // 约 1000pt，上限会算到 820pt —— 一行容纳的字数是折叠态的两倍
+              // 还多，一句话要横扫整屏才读完。560 是阅读宽度上限。
+              // 折叠态 390×0.82≈320，远小于 560，上限不触发，与改前逐像素相同。
+              maxWidth: math.min(
+                MediaQuery.of(context).size.width * 0.82,
+                560.0,
+              ),
             ),
             decoration: BoxDecoration(
               color: isUser ? SakuraColors.sumi : SakuraColors.white,

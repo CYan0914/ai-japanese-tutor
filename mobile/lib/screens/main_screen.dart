@@ -45,36 +45,50 @@ class _MainScreenState extends State<MainScreen> {
           top: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: BottomNavigationBar(
-              currentIndex: _tabIndex,
-              onTap: _setTab,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: SakuraColors.white,
-              selectedItemColor: SakuraColors.sakura,
-              unselectedItemColor: SakuraColors.stone,
-              elevation: 0,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.cottage_outlined),
-                  activeIcon: Icon(Icons.cottage_rounded),
-                  label: 'Home',
+            // 展开态限宽：整屏宽约 1000pt 时四个 tab 会被摊到相隔 250pt 的
+            // 位置上，看着像四个孤立按钮而不是一条导航栏。560 是控件宽度上限，
+            // 多出来的宽度两侧留白；白底与上边框留在外面的 Container 上，
+            // 仍是整屏宽。折叠态可用宽本就不到 560，逐像素不变。
+            // heightFactor 1.0：高度收缩包裹导航栏本身，宽度仍占满整屏。
+            // 这里不能用 Center —— bottomNavigationBar 槽给的是松高度约束
+            // （maxHeight 为整屏高），Center 会把导航栏撑满整个屏幕。
+            child: Align(
+              alignment: Alignment.center,
+              heightFactor: 1.0,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: BottomNavigationBar(
+                  currentIndex: _tabIndex,
+                  onTap: _setTab,
+                  type: BottomNavigationBarType.fixed,
+                  backgroundColor: SakuraColors.white,
+                  selectedItemColor: SakuraColors.sakura,
+                  unselectedItemColor: SakuraColors.stone,
+                  elevation: 0,
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.cottage_outlined),
+                      activeIcon: Icon(Icons.cottage_rounded),
+                      label: 'Home',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.menu_book_outlined),
+                      activeIcon: Icon(Icons.menu_book_rounded),
+                      label: 'Learn',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.chat_bubble_outline_rounded),
+                      activeIcon: Icon(Icons.chat_bubble_rounded),
+                      label: 'Tutor',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.person_outline_rounded),
+                      activeIcon: Icon(Icons.person_rounded),
+                      label: 'Account',
+                    ),
+                  ],
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book_outlined),
-                  activeIcon: Icon(Icons.menu_book_rounded),
-                  label: 'Learn',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.chat_bubble_outline_rounded),
-                  activeIcon: Icon(Icons.chat_bubble_rounded),
-                  label: 'Tutor',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline_rounded),
-                  activeIcon: Icon(Icons.person_rounded),
-                  label: 'Account',
-                ),
-              ],
+              ),
             ),
           ),
         ),
