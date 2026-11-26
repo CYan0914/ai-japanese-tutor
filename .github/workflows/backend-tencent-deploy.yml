@@ -11,7 +11,9 @@
 # 前置条件 — 仓库 Secrets (Settings → Secrets and variables → Actions):
 #   TENCENT_HOST      — 124.223.156.225
 #   TENCENT_USER      — ubuntu
-#   TENCENT_PASSWORD  — SSH 密码
+#   TENCENT_SSH_KEY   — 部署专用 ed25519 私钥（公钥已加进服务器
+#                       ~/.ssh/authorized_keys，注释 sakura-github-actions）
+#   密码认证已关闭：本地密码被轮换后，password: 方式会直接 handshake failed。
 #
 # 部署步骤:
 #   1. /opt/sakura-tutor 拉最新代码（git 镜像，仅作暂存）
@@ -48,7 +50,7 @@ jobs:
         with:
           host: ${{ secrets.TENCENT_HOST }}
           username: ${{ secrets.TENCENT_USER }}
-          password: ${{ secrets.TENCENT_PASSWORD }}
+          key: ${{ secrets.TENCENT_SSH_KEY }}
           port: 22
           script_stop: true
           script: |
