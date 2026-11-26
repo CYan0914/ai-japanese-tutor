@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     # the routers append it). Empty = build from incoming Request.
     public_base_url: str = ""
 
+    # ── Durable state ──
+    # Directory for state that must survive a restart (bearer tokens, daily
+    # usage, abuse windows). Empty = in-memory only (local dev). In prod set
+    # STATE_DIR=/home/ubuntu/backend/state — it lives outside app/ so the
+    # deploy rsync never touches it.
+    state_dir: str = ""
+
     # ── OAuth ──
     # iOS OAuth client ID from Google Cloud Console.
     # When empty, /auth/google returns 501 (sign-in button will be disabled).

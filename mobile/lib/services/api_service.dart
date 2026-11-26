@@ -81,6 +81,9 @@ class ApiService {
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    // ensureToken() reads AuthState.token before SharedPreferences, so
+    // clearing prefs alone made every 401 retry re-send the same dead token.
+    await AuthState.instance?.signOut();
   }
 
   /// Get or create an auth token from the backend.
@@ -145,23 +148,13 @@ class ApiService {
   /// (P0: backend stopped inlining base64 data URIs). Retries transient
   /// failures the same way chat does.
   static Future<String> tts(String text) async {
-    return _withRetry(() async {
-      final token = await ensureToken();
-      final resp = await http.post(
-        Uri.parse('${AppConstants.apiBaseUrl}/tts'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'text': text}),
-      ).timeout(const Duration(seconds: 30));
-      if (resp.statusCode == 429 || resp.statusCode >= 500) {
-        throw Exception('TTS failed: ${resp.statusCode}');
-      }
-      if (resp.statusCode != 200) throw Exception('TTS failed: ${resp.statusCode}');
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      return data['audio_url'] as String;
-    });
+    // Reuse the authenticated helper so a stale token gets refreshed instead
+    // of failing the kana audio outright.
+    return _withRetry(() => _postWithAuth(
+          path: '/tts',
+          body: {'text': text},
+          fromJson: (j) => j['audio_url'] as String,
+        ));
   }
 
   // ── Core HTTP helper with auto-retry on 401 ──

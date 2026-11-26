@@ -17,6 +17,11 @@ async def lifespan(app: FastAPI):
     """Load heavy models on startup, clean up on shutdown."""
     settings = get_settings()
 
+    # ── restore bearer tokens + usage so a restart doesn't 401 every client ──
+    from app.auth import load_state
+
+    load_state()
+
     # ── load Whisper model once ──
     from app.services.stt_service import init_whisper
 

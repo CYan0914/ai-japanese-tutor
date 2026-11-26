@@ -26,6 +26,11 @@ name: iOS — Build & TestFlight
 on:
   push:
     branches: [master]
+    # Backend-only pushes must not rebuild iOS — it re-uploads the same build
+    # number, which App Store Connect rejects, and burns ~20 macOS minutes.
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios-testflight.yml"
   workflow_dispatch:
 
 concurrency:

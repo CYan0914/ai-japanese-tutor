@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
+import os
 import secrets
 import time
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, HTTPException, status
@@ -12,6 +16,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import get_settings
 from app.database import get_profile
+
+logger = logging.getLogger("uvicorn.error")
 
 # ── Simple token store for MVP ──
 # In production, this would be Supabase Auth + JWT verification.
@@ -38,6 +44,70 @@ _CHAT_PER_IP_PER_DAY = 50
 _CHAT_IP_WINDOW_SECONDS = 24 * 3600
 
 bearer_scheme = HTTPBearer()
+
+# ── Durable state ──
+# These four dicts used to be memory-only, so every deploy restart invalidated
+# every client's bearer token (all users got 401 mid-lesson) and silently
+# refilled the free daily quota. Persist them to one JSON file when STATE_DIR
+# is set; empty means in-memory only (local dev) — unchanged behaviour.
+_STATE_FILE = "auth_state.json"
+
+
+def _state_path() -> Path | None:
+    state_dir = get_settings().state_dir
+    if not state_dir:
+        return None
+    return Path(state_dir) / _STATE_FILE
+
+
+def load_state() -> None:
+    """Restore tokens / usage / abuse windows. Call once on startup."""
+    path = _state_path()
+    if path is None:
+        return
+    if not path.exists():
+        logger.info("auth state: no file at %s yet", path)
+        return
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return
+        _tokens.update(data.get("tokens") or {})
+        _usage.update(data.get("usage") or {})
+        _ip_mints.update(data.get("ip_mints") or {})
+        _ip_chat.update(data.get("ip_chat") or {})
+    except (OSError, ValueError):
+        logger.warning("auth state unreadable, starting empty", exc_info=True)
+        return
+    _prune_tokens()
+    logger.info(
+        "auth state loaded: %d tokens, %d users, %d ips",
+        len(_tokens),
+        len(_usage),
+        len(_ip_chat),
+    )
+
+
+def _save_state() -> None:
+    """Atomically rewrite the state file. No-op when STATE_DIR is unset."""
+    path = _state_path()
+    if path is None:
+        return
+    payload = {
+        "tokens": _tokens,
+        "usage": _usage,
+        "ip_mints": _ip_mints,
+        "ip_chat": _ip_chat,
+    }
+    tmp = path.with_suffix(".tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(
+            json.dumps(payload, separators=(",", ":")), encoding="utf-8"
+        )
+        os.replace(tmp, path)
+    except OSError:
+        logger.warning("auth state save failed", exc_info=True)
 
 
 def _prune_tokens() -> None:
@@ -69,6 +139,7 @@ def check_token_mint_allowed(client_ip: str | None) -> tuple[bool, str]:
         _ip_mints.clear()
     if len(_ip_chat) > 5000:
         _ip_chat.clear()
+    _save_state()
     return True, ""
 
 
@@ -85,6 +156,7 @@ def check_chat_allowed(client_ip: str | None) -> tuple[bool, str]:
     stamps.append(now)
     # keep bounded: at most _CHAT_PER_IP_PER_DAY entries per IP
     _ip_chat[client_ip] = stamps[-_CHAT_PER_IP_PER_DAY:]
+    _save_state()
     return True, ""
 
 
@@ -112,6 +184,7 @@ def create_token(user_id: str) -> str:
         "level": "N5",
         "tier": "free",
     }
+    _save_state()
     return token
 
 
@@ -145,6 +218,7 @@ def get_user_usage(user_id: str) -> dict:
     if today not in daily:
         daily[today] = 0
     daily[today] += 1
+    _save_state()
     return {
         "lessons_used_today": daily[today],
         "lessons_remaining": max(0, get_settings().free_daily_limit - daily[today]),
