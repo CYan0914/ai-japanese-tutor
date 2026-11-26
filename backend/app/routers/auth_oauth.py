@@ -73,7 +73,7 @@ class AuthResponse(BaseModel):
 
 
 def _fetch_jwks(url: str) -> list[dict[str, Any]]:
-    """Fetch + cache JWKS for the given issuer."""
+    """Fetch + cache JWKS for the given issuer (sync; called off-loop)."""
     now = time.time()
     cached = _JWKS_CACHE.get(url)
     if cached and (now - cached[0]) < _JWKS_TTL:
@@ -86,7 +86,21 @@ def _fetch_jwks(url: str) -> list[dict[str, Any]]:
     return keys
 
 
-def _verify_id_token(
+async def _fetch_jwks_async(url: str, *, force_refresh: bool = False) -> list[dict[str, Any]]:
+    """JWKS fetch that never blocks the event loop (P0: was sync httpx in endpoint)."""
+    import anyio
+
+    if not force_refresh:
+        now = time.time()
+        cached = _JWKS_CACHE.get(url)
+        if cached and (now - cached[0]) < _JWKS_TTL:
+            return cached[1]
+    else:
+        _JWKS_CACHE.pop(url, None)
+    return await anyio.to_thread.run_sync(lambda: _fetch_jwks(url))
+
+
+async def _verify_id_token(
     id_token: str,
     *,
     jwks_url: str,
@@ -109,12 +123,11 @@ def _verify_id_token(
             detail="Token missing kid",
         )
 
-    keys = _fetch_jwks(jwks_url)
+    keys = await _fetch_jwks_async(jwks_url)
     jwk = next((k for k in keys if k.get("kid") == kid), None)
     if jwk is None:
         # Force refresh once
-        _JWKS_CACHE.pop(jwks_url, None)
-        keys = _fetch_jwks(jwks_url)
+        keys = await _fetch_jwks_async(jwks_url, force_refresh=True)
         jwk = next((k for k in keys if k.get("kid") == kid), None)
     if jwk is None:
         raise HTTPException(
@@ -145,7 +158,7 @@ def _verify_id_token(
 @router.post("/auth/apple", response_model=AuthResponse)
 async def sign_in_with_apple(req: OAuthRequest):
     """Verify Apple identity token, create or look up user, return our bearer."""
-    claims = _verify_id_token(
+    claims = await _verify_id_token(
         req.id_token,
         jwks_url="https://appleid.apple.com/auth/keys",
         issuer="https://appleid.apple.com",
@@ -178,9 +191,12 @@ async def sign_in_with_google(req: OAuthRequest):
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Google sign-in not configured. Set GOOGLE_IOS_CLIENT_ID env var.",
         )
-    claims = _verify_id_token(
+    claims = await _verify_id_token(
         req.id_token,
-        jwks_url="https://www.googleapis.com/oauth2/v3/certs",
+        # Google JWKS — routed via Cloudflare Worker on
+        # gauth-jwks.taomindapp.com (GFW blocks direct egress to
+        # googleapis.com from Tencent Cloud). Worker cache 10 min.
+        jwks_url="https://gauth-jwks.taomindapp.com/oauth2/v3/certs",
         issuer=["https://accounts.google.com", "accounts.google.com"],
         audience=google_audience,
     )

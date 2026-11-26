@@ -53,10 +53,15 @@ def transcribe(
         tmp_path = tmp.name
 
     try:
+        # P1 traffic setting: beam_size 5→1 + VAD skips silence on shared CPU.
+        # word_timestamps must stay on — the pronunciation scorer reads
+        # per-word probabilities from seg.words (without it details are empty).
         segments, _info = _whisper_model.transcribe(
             tmp_path,
             language=language,
-            beam_size=5,
+            beam_size=1,
+            word_timestamps=True,
+            vad_filter=True,
         )
 
         text_parts: list[str] = []

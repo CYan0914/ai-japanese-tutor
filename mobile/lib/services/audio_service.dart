@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
+import 'tts_disk_cache.dart';
 
 class AudioService {
   final _recorder = AudioRecorder();
@@ -34,13 +35,22 @@ class AudioService {
   /// Play audio from a URL or data URI.
   /// Data URIs (data:audio/mp3;base64,...) are NOT supported by just_audio's
   /// platform players, so we decode them to a temp file first.
-  Future<void> playUrl(String url) async {
+  /// P1: https audio goes through the on-disk cache (repeat plays are free);
+  /// data-URI fallback still decodes inline for old/stale responses.
+  Future<void> playUrl(String url, {Map<String, String>? headers}) async {
     await _player.stop();
     if (_isDataUri(url)) {
       final filePath = await dataUriToFile(url);
       await _player.setFilePath(filePath);
     } else {
-      await _player.setUrl(url);
+      try {
+        final file = await TtsDiskCache.resolve(url, headers: headers);
+        await _player.setFilePath(file.path);
+      } catch (_) {
+        // Cache/download failed (offline, 404 after server restart, …) —
+        // fall back to streaming so playback still has a chance.
+        await _player.setUrl(url, headers: headers);
+      }
     }
     await _player.play();
   }

@@ -6,6 +6,12 @@ import '../models/chat_message.dart';
 import '../models/tutor_response.dart';
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
+import '../services/offline_outbox.dart';
+import '../services/tts_disk_cache.dart';
+
+/// P1: how the last send failed, so the UI can offer the right action
+/// (paywall for quota, retry for transient, queued-hint for offline).
+enum LessonFailure { none, quota, ipCap, offline, transient }
 
 class LessonState extends ChangeNotifier {
   final AudioService audio = AudioService();
@@ -16,6 +22,24 @@ class LessonState extends ChangeNotifier {
   String? error;
   UsageInfo? usage;
   String currentLevel = 'N5';
+
+  /// P1: set when the last failure was quota-related → lesson screen
+  /// navigates to the Pro paywall instead of a dead-end error toast.
+  LessonFailure lastFailure = LessonFailure.none;
+
+  /// P1: queued-but-unsent count for the "N messages waiting" banner.
+  int queuedCount = 0;
+
+  LessonState() {
+    _refreshQueuedCount();
+  }
+
+  Future<void> _refreshQueuedCount() async {
+    try {
+      queuedCount = (await OfflineOutbox.pending()).length;
+      notifyListeners();
+    } catch (_) {}
+  }
 
   /// Send text message to the tutor.
   Future<void> sendText(String text) async {
@@ -81,6 +105,7 @@ class LessonState extends ChangeNotifier {
   Future<void> _callApi({String? message, String? audioBase64}) async {
     isLoading = true;
     error = null;
+    lastFailure = LessonFailure.none;
     notifyListeners();
 
     try {
@@ -92,24 +117,46 @@ class LessonState extends ChangeNotifier {
 
       messages.add(ChatMessage.fromResponse(resp.response, resp.audioUrl));
       usage = resp.usage;
+      // Emission succeeded — try flushing anything queued during the outage.
+      unawaitedFlush();
     } catch (e) {
-      if (e.toString().contains('daily_limit_reached')) {
+      final s = e.toString();
+      if (s.contains('daily_limit_reached')) {
+        lastFailure = LessonFailure.quota;
         error = 'You\'ve used all your free lessons for today. Upgrade to Pro!';
-      } else if (e.toString().contains('internal_error')) {
-        final debug = e.toString().replaceFirst('Exception: internal_error:', '').trim();
-        error = 'Server error. Please try again.${debug.isNotEmpty ? ' ($debug)' : ''}';
-      } else if (e.toString().contains('ai_service_error')) {
+      } else if (s.contains('ip_daily_limit_reached')) {
+        lastFailure = LessonFailure.ipCap;
+        error = 'Too many requests from this device today. Please try again tomorrow.';
+      } else if (s.contains('too_many_tokens')) {
+        lastFailure = LessonFailure.transient;
+        error = 'Too many sign-ins from this device. Please try again later.';
+      } else if (s.contains('internal_error')) {
+        // P0: never surface server internals — generic message only.
+        lastFailure = LessonFailure.transient;
+        error = 'Server error. Please try again.';
+      } else if (s.contains('ai_service_error')) {
+        lastFailure = LessonFailure.transient;
         error = 'AI service is temporarily unavailable. Please try again in a moment.';
+      } else if (s.contains('SocketException') ||
+          s.contains('HandshakeException') ||
+          s.contains('ClientException') ||
+          s.contains('TimeoutException') ||
+          s.contains('Failed host lookup')) {
+        // P1: likely offline — queue text sends so nothing is lost.
+        lastFailure = LessonFailure.offline;
+        final queued = await OfflineOutbox.enqueue(
+          message: message ?? '[audio]',
+          level: currentLevel,
+          audioBase64: message != null ? null : audioBase64,
+        );
+        await _refreshQueuedCount();
+        error = queued
+            ? 'You seem offline — message queued, will send when reconnected.'
+            : 'You seem offline — queue is full, please retry when reconnected.';
       } else {
-        // Show actual error so we can debug. For production, replace with generic message.
-        final msg = e.toString();
-        if (msg.contains('SocketException') || msg.contains('HandshakeException')) {
-          error = 'Cannot connect to server. Check your internet connection.';
-        } else if (msg.contains('timeout') || msg.contains('TimeoutException')) {
-          error = 'Request timed out. Please try again.';
-        } else {
-          error = 'Something went wrong: ${msg.length > 120 ? '${msg.substring(0, 120)}...' : msg}';
-        }
+        lastFailure = LessonFailure.transient;
+        final msg = s;
+        error = 'Something went wrong: ${msg.length > 120 ? '${msg.substring(0, 120)}...' : msg}';
       }
     }
 
@@ -123,6 +170,49 @@ class LessonState extends ChangeNotifier {
         await audio.playUrl(lastMsg!.audioUrl!);
       } catch (_) {}
     }
+  }
+
+  /// P1: replay queued messages in order after connectivity returns.
+  /// Fire-and-forget from success paths and app resume; never throws.
+  Future<void> unawaitedFlush() async {
+    try {
+      // Drain the queue head-first: each iteration re-reads pending so
+      // removeAt(0) index shifts can't desync us. Stop on first failure.
+      for (;;) {
+        final pending = await OfflineOutbox.pending();
+        if (pending.isEmpty) break;
+        final m = pending.first;
+        try {
+          final resp = await ApiService.chat(
+            message: m.message,
+            level: m.level,
+            audioBase64: m.audioBase64,
+          );
+          messages.add(ChatMessage.fromResponse(resp.response, resp.audioUrl));
+          usage = resp.usage;
+          await OfflineOutbox.removeAt(0);
+        } catch (_) {
+          // Still offline or backend still down — stop, keep the rest.
+          break;
+        }
+      }
+      await _refreshQueuedCount();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// P1: warm the disk cache for the latest assistant audio so replay
+  /// is instant even on flaky networks.
+  Future<void> prefetchLatestAudio() async {
+    try {
+      for (final m in messages.reversed.take(3)) {
+        final url = m.audioUrl;
+        if (url != null && !url.startsWith('data:')) {
+          await TtsDiskCache.resolve(url);
+        }
+      }
+      await TtsDiskCache.prune();
+    } catch (_) {}
   }
 
   void setLevel(String level) {

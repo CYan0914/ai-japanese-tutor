@@ -9,9 +9,25 @@ app = "sakura-tutor-api"
   force_https = true
   auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 2
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 25
+    soft_limit = 20
+
+  # P1: liveness on /health (cheap, always 200), readiness visible at
+  # /ready. Fly restarts machines that fail liveness; readiness is for
+  # the operator/dashboard to keep cold instances out of the pool.
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/v1/health"
+    protocol = "http"
+    timeout = "5s"
 
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 512
+  memory_mb = 2048

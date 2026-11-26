@@ -12,7 +12,6 @@ from app.routers import auth_oauth as auth_oauth_routes
 from app.routers import auth_router as auth_routes
 from app.routers import chat, health, user
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load heavy models on startup, clean up on shutdown."""
@@ -23,6 +22,17 @@ async def lifespan(app: FastAPI):
 
     init_whisper(settings)
     app.state.whisper_loaded = True
+
+    # P1: one structured line per boot so Fly logs show model + limits.
+    import logging
+
+    logging.getLogger("uvicorn.error").info(
+        "sakura boot: whisper_model=%s device=%s free_daily_limit=%d public_base_url=%s",
+        settings.whisper_model,
+        settings.whisper_device,
+        settings.free_daily_limit,
+        settings.public_base_url or "(request-derived)",
+    )
 
     yield
 

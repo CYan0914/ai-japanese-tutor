@@ -29,7 +29,15 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""
 
     # ── Rate Limit ──
-    free_daily_limit: int = 10
+    # Single source of truth for free tier. Mobile displays AppConstants.freeDailyLimit
+    # (5) — keep these two in sync when changing.
+    free_daily_limit: int = 5
+
+    # ── Public URL ──
+    # Origin clients use to fetch cached TTS audio, e.g.
+    # "https://sakura.taomindapp.com" (origin only — never include /api/v1,
+    # the routers append it). Empty = build from incoming Request.
+    public_base_url: str = ""
 
     # ── OAuth ──
     # iOS OAuth client ID from Google Cloud Console.

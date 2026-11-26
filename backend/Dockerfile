@@ -17,4 +17,7 @@ COPY app/ app/
 # Fly.io expects port 8080
 EXPOSE 8080
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# P0: 2 workers so one slow LLM/STT call doesn't head-of-line block all
+# traffic. Needs the 2GB VM in fly.toml (each worker loads its own
+# Whisper model ~150MB). Single worker + sync STT/LLM = whole server stalls.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]

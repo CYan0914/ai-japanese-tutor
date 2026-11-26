@@ -9,7 +9,7 @@ import json
 import re
 from typing import Any
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from app.config import Settings
 
@@ -115,7 +115,7 @@ class JapaneseTutor:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = OpenAI(
+        self.client = AsyncOpenAI(
             api_key=settings.llm_api_key,
             base_url=settings.llm_base_url,
         )
@@ -124,7 +124,7 @@ class JapaneseTutor:
         desc = LEVEL_DESCRIPTIONS.get(level, LEVEL_DESCRIPTIONS["N5"])
         return JAPANESE_TUTOR_SYSTEM.format(level=f"{level} ({desc})")
 
-    def chat(
+    async def chat(
         self,
         user_message: str,
         history: list[dict[str, str]],
@@ -140,7 +140,7 @@ class JapaneseTutor:
             {"role": "user", "content": user_message},
         ]
 
-        raw = self._call_api(messages)
+        raw, usage = await self._call_api(messages)
         result = self._parse_json(raw)
 
         # Fallback on parse failure
@@ -155,16 +155,28 @@ class JapaneseTutor:
                 "encouragement": "",
             }
 
+        # P1: surface token burn for the cost watch (popped by the router).
+        result["_llm_usage"] = usage
+
         return result
 
-    def _call_api(self, messages: list[dict[str, str]]) -> str:
-        resp = self.client.chat.completions.create(
+    async def _call_api(self, messages: list[dict[str, str]]) -> tuple[str, dict[str, int]]:
+        resp = await self.client.chat.completions.create(
             model=self.settings.llm_model,
             messages=messages,
             temperature=0.7,
             max_tokens=1200,
         )
-        return resp.choices[0].message.content or ""
+        # P1: capture token burn for /metrics (best-effort, never fatal).
+        usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0}
+        try:
+            u = resp.usage
+            if u is not None:
+                usage["prompt_tokens"] = int(u.prompt_tokens or 0)
+                usage["completion_tokens"] = int(u.completion_tokens or 0)
+        except Exception:
+            pass
+        return (resp.choices[0].message.content or "", usage)
 
     @staticmethod
     def _parse_json(raw: str) -> dict | None:

@@ -6,6 +6,7 @@ import '../config/tokens.dart';
 import '../models/chat_message.dart';
 import '../services/lesson_state.dart';
 import '../services/subscription_service.dart';
+import 'subscription_screen.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/record_button.dart';
 import '../widgets/pronunciation_card.dart';
@@ -126,56 +127,141 @@ class _LessonScreenState extends State<LessonScreen> {
               builder: (_, state, __) {
                 if (state.error != null) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(state.error!),
-                        action: SnackBarAction(
-                          label: 'OK',
-                          onPressed: () => state.clearError(),
-                          textColor: SakuraColors.sakura,
-                        ),
-                      ),
-                    );
-                  });
-                }
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(SakuraSpace.l),
-                  itemCount: state.messages.length + (state.isLoading ? 1 : 0),
-                  itemBuilder: (_, i) {
-                    if (i == state.messages.length && state.isLoading) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: SakuraSpace.l),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24, height: 24,
-                              decoration: BoxDecoration(
-                                color: SakuraColors.sakuraSoft,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 12, height: 12,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: SakuraColors.sakura,
-                                  ),
+                    // P1: quota failures route to the Pro paywall (this traffic
+                    // spike is the best conversion moment); everything else
+                    // stays a dismissible toast.
+                    if (state.lastFailure == LessonFailure.quota) {
+                      final err = state.error!;
+                      state.clearError();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(err),
+                          action: SnackBarAction(
+                            label: 'Go Pro',
+                            textColor: SakuraColors.sakura,
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const SubscriptionScreen(),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: SakuraSpace.s),
-                            Text(
-                              'Sakura is thinking...',
-                              style: SakuraType.caption(),
-                            ),
-                          ],
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.error!),
+                          action: SnackBarAction(
+                            label: 'OK',
+                            onPressed: () => state.clearError(),
+                            textColor: SakuraColors.sakura,
+                          ),
                         ),
                       );
                     }
-                    final msg = state.messages[i];
-                    return _buildMessage(msg);
-                  },
+                  });
+                }
+                // P1: offline queue banner
+                final queuedBanner = state.queuedCount > 0
+                    ? Container(
+                        margin: const EdgeInsets.fromLTRB(
+                            SakuraSpace.l, SakuraSpace.s, SakuraSpace.l, 0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: SakuraColors.washiDeep,
+                          borderRadius:
+                              const BorderRadius.all(SakuraRadius.pill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off_outlined, size: 14),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '${state.queuedCount} message${state.queuedCount == 1 ? '' : 's'} waiting — will send when reconnected',
+                                style: SakuraType.caption(size: 12),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => state.unawaitedFlush(),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6),
+                                child: Text('Retry now',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink();
+                // 展开态限宽。整屏宽约 1000pt 时，AI 气泡贴最左、用户气泡贴
+                // 最右，中间空出半个屏幕，读一行要左右来回扫。720 是对话列的
+                // 阅读宽度上限，多出来的宽度两侧留白。对话区没有自己的背景容器，
+                // 露出来的是 Scaffold 的 washi 底色，与原来同一层，不会分层。
+                // 折叠态可用宽本就不到 720，逐像素不变。
+                // P1: queued banner sits above the message list, same max-width.
+                return Column(
+                  children: [
+                    queuedBanner,
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(SakuraSpace.l),
+                            itemCount: state.messages.length +
+                                (state.isLoading ? 1 : 0),
+                            itemBuilder: (_, i) {
+                              if (i == state.messages.length &&
+                                  state.isLoading) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: SakuraSpace.l,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: SakuraColors.sakuraSoft,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                              color: SakuraColors.sakura,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: SakuraSpace.s),
+                                      Text(
+                                        'Sakura is thinking...',
+                                        style: SakuraType.caption(),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              final msg = state.messages[i];
+                              return _buildMessage(msg);
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -192,61 +278,74 @@ class _LessonScreenState extends State<LessonScreen> {
               SakuraSpace.m, SakuraSpace.s, SakuraSpace.m,
               MediaQuery.of(context).padding.bottom + SakuraSpace.s,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Mode toggle
-                Semantics(
-                  label: _isTextMode
-                      ? 'Switch to voice input'
-                      : 'Switch to text input',
-                  button: true,
-                  child: InkWell(
-                    onTap: () => setState(() => _isTextMode = !_isTextMode),
-                    borderRadius: const BorderRadius.all(SakuraRadius.pill),
-                    child: Container(
-                      width: 42, height: 42,
-                      decoration: BoxDecoration(
-                        color: _isTextMode ? SakuraColors.washiDeep : SakuraColors.sakura,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _isTextMode ? Icons.mic_none_rounded : Icons.keyboard_alt_outlined,
-                        color: _isTextMode ? SakuraColors.sumi : SakuraColors.washi,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: SakuraSpace.s),
-                Expanded(
-                  child: _isTextMode ? _buildTextField() : _buildRecordButton(),
-                ),
-                if (_isTextMode)
-                  Padding(
-                    padding: const EdgeInsets.only(left: SakuraSpace.s),
-                    child: Semantics(
-                      label: 'Send message',
+            // 输入条与上面的对话列用同一个限宽，否则宽屏下白底条横贯整屏而
+            // 对话列缩在中间，两者左边缘对不齐。白色底与上边框留在 Container
+            // 上（仍是整屏宽），限的只是里面那一行控件。
+            // heightFactor 1.0：高度收缩包裹这一行控件，宽度仍占满整屏。
+            // 这里不能用 Center —— 输入栏在 Column 的非 flex 子位，高度约束
+            // 是无界的，Center 会把自身撑到 infinity 而断言失败。
+            child: Align(
+              alignment: Alignment.center,
+              heightFactor: 1.0,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Mode toggle
+                    Semantics(
+                      label: _isTextMode
+                          ? 'Switch to voice input'
+                          : 'Switch to text input',
                       button: true,
                       child: InkWell(
-                        onTap: _sendText,
+                        onTap: () => setState(() => _isTextMode = !_isTextMode),
                         borderRadius: const BorderRadius.all(SakuraRadius.pill),
                         child: Container(
                           width: 42, height: 42,
-                          decoration: const BoxDecoration(
-                            color: SakuraColors.sumi,
+                          decoration: BoxDecoration(
+                            color: _isTextMode ? SakuraColors.washiDeep : SakuraColors.sakura,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.arrow_upward_rounded,
-                            color: SakuraColors.washi,
+                          child: Icon(
+                            _isTextMode ? Icons.mic_none_rounded : Icons.keyboard_alt_outlined,
+                            color: _isTextMode ? SakuraColors.sumi : SakuraColors.washi,
                             size: 20,
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                    const SizedBox(width: SakuraSpace.s),
+                    Expanded(
+                      child: _isTextMode ? _buildTextField() : _buildRecordButton(),
+                    ),
+                    if (_isTextMode)
+                      Padding(
+                        padding: const EdgeInsets.only(left: SakuraSpace.s),
+                        child: Semantics(
+                          label: 'Send message',
+                          button: true,
+                          child: InkWell(
+                            onTap: _sendText,
+                            borderRadius: const BorderRadius.all(SakuraRadius.pill),
+                            child: Container(
+                              width: 42, height: 42,
+                              decoration: const BoxDecoration(
+                                color: SakuraColors.sumi,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_upward_rounded,
+                                color: SakuraColors.washi,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
