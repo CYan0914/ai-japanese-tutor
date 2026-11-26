@@ -1,0 +1,119 @@
+# Sakura Tutor API — Tencent Cloud deploy (venv/systemd)
+#
+# 触发方式:
+#   - push 到 master 且改动触及 backend/ → SSH 上腾讯云更新代码并重启服务
+#   - 或手动在 Actions 页面触发 (workflow_dispatch)
+#
+# ⚠️ 这台机器上跑着 5 个服务，内存只有 2G，所以不用 Docker：
+#   走 /home/ubuntu/backend 的 venv + systemd (sakura-api.service)，
+#   Caddy 把 sakura.taomindapp.com 反代到 127.0.0.1:8080。
+#
+# 前置条件 — 仓库 Secrets (Settings → Secrets and variables → Actions):
+#   TENCENT_HOST      — 124.223.156.225
+#   TENCENT_USER      — ubuntu
+#   TENCENT_PASSWORD  — SSH 密码
+#
+# 部署步骤:
+#   1. /opt/sakura-tutor 拉最新代码（git 镜像，仅作暂存）
+#   2. rsync 到真实运行目录 /home/ubuntu/backend/app（--delete 保证无残留文件）
+#   3. venv 装依赖
+#   4. compileall 语法检查 —— 不通过就不重启（绝不带着坏代码重启线上）
+#   5. 重启 sakura-api.service + 轮询 /health
+#
+# .env 不在此处生成：它以服务器上的 /home/ubuntu/backend/.env 为准
+# （含本地 Whisper 模型路径、GOOGLE_IOS_CLIENT_ID、DeepSeek key）。
+
+name: Backend — Tencent Deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tencent-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-tencent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Tencent Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.TENCENT_HOST }}
+          username: ${{ secrets.TENCENT_USER }}
+          password: ${{ secrets.TENCENT_PASSWORD }}
+          port: 22
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            # 1. refresh the git mirror
+            if [ -d /opt/sakura-tutor/.git ]; then
+              cd /opt/sakura-tutor
+              sudo git fetch origin master
+              sudo git reset --hard origin/master
+            else
+              sudo git clone https://github.com/CYan0914/ai-japanese-tutor.git /opt/sakura-tutor
+            fi
+            sudo chown -R ubuntu:ubuntu /opt/sakura-tutor
+
+            # 2. backup then sync into the live tree
+            STAMP=$(date +%Y%m%d-%H%M%S)
+            sudo tar czf /home/ubuntu/backend-app-backup-$STAMP.tar.gz \
+              -C /home/ubuntu/backend app
+            sudo rsync -a --delete /opt/sakura-tutor/backend/app/ /home/ubuntu/backend/app/
+            sudo chown -R ubuntu:ubuntu /home/ubuntu/backend/app
+
+            # 3. dependencies
+            cd /home/ubuntu/backend
+            ./venv/bin/pip install -q -r /opt/sakura-tutor/backend/requirements.txt 2>&1 | tail -n 3
+
+            # 4. syntax gate — never restart onto broken code
+            ./venv/bin/python -m compileall -q app
+
+            # 5. restart + verify
+            sudo systemctl restart sakura-api.service
+            for i in 1 2 3 4 5 6 7 8; do
+              sleep 5
+              if curl -sf -m 5 http://127.0.0.1:8080/api/v1/health > /dev/null; then
+                echo "health OK (attempt $i)"
+                break
+              fi
+              echo "waiting for service (attempt $i)..."
+              if [ "$i" = 8 ]; then
+                echo "::error::sakura-api never became healthy"
+                sudo journalctl -u sakura-api.service -n 40 --no-pager
+                exit 1
+              fi
+            done
+
+            echo "--- /health ---"
+            curl -s -m 10 http://127.0.0.1:8080/api/v1/health
+            echo
+            echo "--- /ready ---"
+            curl -s -m 10 http://127.0.0.1:8080/api/v1/ready
+            echo
+
+      - name: Verify public endpoint
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            if curl -sf -m 10 https://sakura.taomindapp.com/api/v1/health; then
+              echo
+              echo "public health OK"
+              break
+            fi
+            echo "public endpoint not ready (attempt $i)..."
+            sleep 15
+            if [ "$i" = 5 ]; then
+              echo "::error::public endpoint unreachable — check Caddy/Cloudflare"
+              exit 1
+            fi
+          done

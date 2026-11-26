@@ -8,6 +8,22 @@ import os
 import tempfile
 
 import edge_tts
+from edge_tts import communicate as _edge_communicate
+from edge_tts.constants import TRUSTED_CLIENT_TOKEN
+
+# Microsoft retired the old synthesis endpoint
+# (speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1) —
+# it now returns 403 for every caller regardless of IP or proxy. The migrated
+# endpoint is api.msedgeservices.com and wants the trusted client token as a
+# query param.
+#
+# ⚠️ Patch edge_tts.communicate.WSS_URL, NOT edge_tts.constants.WSS_URL:
+# communicate.py does `from .constants import WSS_URL`, which shadows the
+# constant in its own namespace, so editing constants has no effect.
+_edge_communicate.WSS_URL = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    f"?Ocp-Apim-Subscription-Key={TRUSTED_CLIENT_TOKEN}"
+)
 
 JAPANESE_VOICE = "ja-JP-NanamiNeural"
 
