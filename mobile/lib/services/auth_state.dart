@@ -130,6 +130,16 @@ class AuthState extends ChangeNotifier {
         {'id_token': credential.identityToken ?? ''},
       );
       return _onAuthResponse(resp);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // error 1001 = .canceled: the user dismissed the sheet (or the system
+      // cancelled it mid-flight). Not a failure — clear lastError so the UI
+      // shows no toast. A retry usually succeeds, which is what users report.
+      if (e.code == AuthorizationErrorCode.canceled) {
+        _setBusy(false, null);
+        return false;
+      }
+      _setBusy(false, 'Apple sign-in failed: $e');
+      return false;
     } catch (e) {
       _setBusy(false, 'Apple sign-in failed: $e');
       return false;
